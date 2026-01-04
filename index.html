@@ -234,12 +234,12 @@
         updateDynamicTitle(); 
         
         // --- INICIALIZAÇÃO CORRETA DO FORMULÁRIO ---
-        clearBlockForm();
-        
-        // --- ORDENAÇÃO AO INICIAR ---
-        sortHarvestData();
-        renderList(); 
-        renderReport(); 
+        setTimeout(() => {
+            clearBlockForm();
+            sortHarvestData();
+            renderList(); 
+            renderReport(); 
+        }, 100);
 
         // --- FUNÇÕES DE DATA E HORA ---
         function getWeekNumber(d) {
@@ -268,8 +268,11 @@
             const hasDiscard = harvestData.length > 0 && harvestData.some(item => item.isDiscard);
             const reportType = hasDiscard ? "Descarte" : "Resumo da Colheita";
 
-            document.getElementById('reportTitle').innerHTML = `${greeting}<br>${reportType} de ${dayOfWeek}`;
-            document.getElementById('headerDateTime').innerText = `Data: ${day}/${month}/${year} - ${timeString} - Semana ${weekNumber}`;
+            const titleEl = document.getElementById('reportTitle');
+            if (titleEl) titleEl.innerHTML = `${greeting}<br>${reportType} de ${dayOfWeek}`;
+            
+            const dateEl = document.getElementById('headerDateTime');
+            if (dateEl) dateEl.innerText = `Data: ${day}/${month}/${year} - ${timeString} - Semana ${weekNumber}`;
         }
 
         // --- FORMATAÇÃO E CÁLCULOS ---
@@ -288,6 +291,39 @@
             input.value = value;
         }
 
+        // FUNÇÃO DE FORMATAÇÃO INTELIGENTE CENTRALIZADA
+        function formatSmart(value) {
+            if (value === 0 || value === '0') return "0";
+            
+            // Garante que é número
+            const num = typeof value === 'string' ? parsePTBRNumber(value) : value;
+            if (isNaN(num)) return value;
+
+            if (num >= 1) {
+                // >= 1kg: Remove zeros extras (ex: 18,300 -> 18,3)
+                return num.toLocaleString('pt-BR', {minimumFractionDigits: 0, maximumFractionDigits: 3});
+            } else {
+                // < 1kg: Formata inicialmente com 3 casas
+                let formatted = num.toLocaleString('pt-BR', {minimumFractionDigits: 3, maximumFractionDigits: 3});
+                
+                // LÓGICA DE PRECISÃO (Regra do 0,150 vs 0,10)
+                if (formatted.endsWith('0')) {
+                    // Verifica o penúltimo caractere (o decimal antes do zero final)
+                    const secondDecimal = formatted[formatted.length - 2];
+                    
+                    // Se for '5' (ex: 0,150, 0,250), mantém o zero para indicar precisão de 50g
+                    if (secondDecimal === '5') {
+                        return formatted;
+                    }
+                    
+                    // Caso contrário (ex: 0,100 -> 0,10; 0,900 -> 0,90), remove o zero final
+                    return formatted.substring(0, formatted.length - 1);
+                }
+                
+                return formatted;
+            }
+        }
+
         function calcAverageWeight() {
             const weightVal = document.getElementById('weight').value;
             const unitsVal = document.getElementById('dailyUnits').value;
@@ -297,9 +333,10 @@
             const units = parsePTBRNumber(unitsVal);
 
             if (weight > 0 && units > 0) {
-                // ALTERAÇÃO: Cálculo (peso / unidades) com 3 casas decimais
+                // Cálculo (peso / unidades)
                 const avg = weight / units;
-                avgField.value = avg.toFixed(3).replace('.', ',') + ' g'; // Unidade 'g' no formulário (texto)
+                // Aplica a formatação inteligente no campo input também
+                avgField.value = formatSmart(avg) + ' g'; 
             } else {
                 avgField.value = '';
             }
@@ -307,6 +344,8 @@
 
         function parsePTBRNumber(val) {
             if (!val) return 0;
+            // Converte string PT-BR (1.000,00) para float JS (1000.00)
+            if (typeof val === 'number') return val;
             return parseFloat(val.toString().replace(/\./g, '').replace(',', '.')) || 0;
         }
 
@@ -315,7 +354,7 @@
         
         // --- NOVA FUNÇÃO DE ORDENAÇÃO ---
         function sortHarvestData() {
-            // Sort by Lote ID simply numeric since dates are removed
+            // Sort by Lote ID simply numeric
             harvestData.sort((a, b) => {
                const idA = parseInt(a.talhao) || 0;
                const idB = parseInt(b.talhao) || 0;
@@ -330,7 +369,6 @@
             let html = `<label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Var. Comercial</label>`;
             
             if (variety === 'Pepino') {
-                // ADICIONADO REQUIRED
                 html += `<select id="commercialVariety" required class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
                     <option value="">Selecione...</option>
                     <option value="Aikido">Aikido</option>
@@ -343,7 +381,7 @@
                 html += `<input type="text" id="commercialVariety" placeholder="Selecione a cultura..." disabled class="w-full p-2 border border-slate-200 bg-slate-50 rounded-lg text-sm text-slate-400 cursor-not-allowed">`;
             }
             
-            wrapper.innerHTML = html;
+            if(wrapper) wrapper.innerHTML = html;
         }
 
         function clearBlockForm() {
@@ -352,26 +390,40 @@
                 if(el) el.value = '';
             });
             
-            document.getElementById('variety').selectedIndex = 0;
-            document.getElementById('cucumberType').value = 'Padrão';
-            document.getElementById('harvestNumber').value = '1'; 
-            document.getElementById('isDiscard').checked = false;
+            const varEl = document.getElementById('variety');
+            if(varEl) varEl.selectedIndex = 0;
+
+            const typeEl = document.getElementById('cucumberType');
+            if(typeEl) typeEl.value = 'Padrão';
+
+            const harvestEl = document.getElementById('harvestNumber');
+            if(harvestEl) harvestEl.value = '1'; 
+
+            const discardEl = document.getElementById('isDiscard');
+            if(discardEl) discardEl.checked = false;
+
             updateCommercialInput();
             editingIndex = -1;
             
             const btn = document.getElementById('submitBtn');
-            btn.innerHTML = '<i data-lucide="plus-circle" class="w-4 h-4"></i> <span>Adicionar ao Relatório</span>';
-            btn.classList.replace('bg-blue-600', 'bg-slate-800');
-            btn.classList.replace('hover:bg-blue-700', 'hover:bg-slate-900');
-            document.getElementById('formTitle').innerHTML = '<i data-lucide="file-plus" class="text-emerald-600"></i> Adicionar Lote de Produção';
-            document.getElementById('formContainer').classList.remove('border-blue-300', 'ring-2', 'ring-blue-100');
+            if (btn) {
+                btn.innerHTML = '<i data-lucide="plus-circle" class="w-4 h-4"></i> <span>Adicionar ao Relatório</span>';
+                btn.classList.replace('bg-blue-600', 'bg-slate-800');
+                btn.classList.replace('hover:bg-blue-700', 'hover:bg-slate-900');
+            }
+            
+            const formTitle = document.getElementById('formTitle');
+            if(formTitle) formTitle.innerHTML = '<i data-lucide="file-plus" class="text-emerald-600"></i> Adicionar Lote de Produção';
+            
+            const formContainer = document.getElementById('formContainer');
+            if(formContainer) formContainer.classList.remove('border-blue-300', 'ring-2', 'ring-blue-100');
+            
             lucide.createIcons();
         }
 
         function addItem(e) {
             e.preventDefault();
             
-            // Garantir que todos os IDs acessados aqui existem no HTML acima
             const item = {
                 talhao: document.getElementById('talhao').value,
                 variety: document.getElementById('variety').value,
@@ -401,7 +453,12 @@
             document.getElementById('talhao').value = item.talhao;
             document.getElementById('variety').value = item.variety;
             updateCommercialInput();
-            document.getElementById('commercialVariety').value = item.commercialVariety;
+            
+            // Timeout para garantir que o input comercial foi recriado
+            setTimeout(() => {
+                const commEl = document.getElementById('commercialVariety');
+                if(commEl) commEl.value = item.commercialVariety;
+            }, 0);
             
             ['dailyUnits','weight','averageWeight','cucumberSize'].forEach(k => {
                 const el = document.getElementById(k);
@@ -479,6 +536,7 @@
         }
 
         function renderReport() {
+            // ATUALIZAR TÍTULO BASEADO NOS DADOS
             updateDynamicTitle();
 
             const container = document.getElementById('reportContent');
@@ -512,6 +570,15 @@
 
                     const harvestCount = item.harvestNumber || '1';
                     const harvestText = harvestCount === '1' ? '1 Colheita' : `${harvestCount} Colheitas`;
+                    
+                    // FORMATAÇÃO INTELIGENTE APLICADA AOS ITENS INDIVIDUAIS
+                    // Recalcula média caso venha do storage antigo ou formata o existente
+                    const rawWeight = parsePTBRNumber(item.weight);
+                    const rawUnits = parsePTBRNumber(item.dailyUnits);
+                    const calculatedAvg = rawUnits > 0 ? (rawWeight / rawUnits) : 0;
+                    
+                    const displayWeight = formatSmart(rawWeight);
+                    const displayAvg = formatSmart(calculatedAvg);
 
                     container.innerHTML += `
                     <div class="p-5 hover:bg-slate-50 transition-colors group">
@@ -528,9 +595,9 @@
                             
                             <!-- DADOS PRINCIPAIS -->
                             <div class="grid grid-cols-2 gap-2">
-                                ${createStatItem('package', item.dailyUnits, 'UNIDADES', true)}
-                                ${createStatItem('scale', item.weight || '-', 'PESO (KG)')}
-                                ${createStatItem('gauge', item.averageWeight || '-', 'PESO MÉDIO (G/UNID.)')}
+                                ${createStatItem('package', item.dailyUnits, 'UNIDADES (HOJE)', true)}
+                                ${createStatItem('scale', displayWeight, 'PESO (KG)')}
+                                ${createStatItem('gauge', displayAvg + ' g', 'PESO MÉDIO (G/UNID.)')}
                                 ${createStatItem('ruler', item.cucumberSize || '-', 'TAM. MÉDIO (CM)')}
                             </div>
                             
@@ -544,9 +611,13 @@
             }
 
             
-            // Cálculo do Peso Médio Geral (ALTERADO PARA KG e 3 CASAS)
+            // Cálculo do Peso Médio Geral
             const overallAvg = sumDailyUnits > 0 ? (sumWeight / sumDailyUnits) : 0;
             
+            // FORMATAÇÃO INTELIGENTE PARA TOTAIS
+            const totalWeightFormatted = formatSmart(sumWeight);
+            const overallAvgFormatted = formatSmart(overallAvg);
+
             footer.innerHTML = `
                 <div class="bg-emerald-50 rounded-lg p-4 mb-4 flex justify-around items-center">
                     <div class="text-center">
@@ -556,12 +627,12 @@
                     <div class="w-px h-10 bg-emerald-200"></div>
                     <div class="text-center">
                         <div class="text-[10px] text-emerald-600 font-bold uppercase mb-1">TOTAL PESO (KG)</div>
-                        <div class="text-xl font-extrabold text-emerald-800">${sumWeight.toLocaleString('pt-BR', {minimumFractionDigits: 3, maximumFractionDigits: 3})}</div>
+                        <div class="text-xl font-extrabold text-emerald-800">${totalWeightFormatted}</div>
                     </div>
                     <div class="w-px h-10 bg-emerald-200"></div>
                     <div class="text-center">
                         <div class="text-[10px] text-emerald-600 font-bold uppercase mb-1">MÉDIA GERAL (G/UNID.)</div>
-                        <div class="text-xl font-extrabold text-emerald-800">${overallAvg.toLocaleString('pt-BR', {minimumFractionDigits: 3, maximumFractionDigits: 3}) + ' g'}</div>
+                        <div class="text-xl font-extrabold text-emerald-800">${overallAvgFormatted + ' g'}</div>
                     </div>
                 </div>`;
             lucide.createIcons();
@@ -605,20 +676,18 @@
             document.querySelector('button[onclick="downloadPDF()"] span').innerText = "Gerando PDF...";
             
             try {
-                // 1. Configurar opções para captura de ALTA FIDELIDADE
                 const options = {
-                    scale: 3, // 3x a resolução original (Retina Quality)
+                    scale: 3, 
                     useCORS: true,
                     allowTaint: true,
                     scrollY: -window.scrollY,
-                    backgroundColor: '#ffffff', // Garante fundo branco
+                    backgroundColor: '#ffffff', 
                     onclone: (doc) => {
                         const el = doc.getElementById('report-card');
                         const content = doc.getElementById('reportContent');
                         
-                        // Força estilos para renderização perfeita
                         if (el) { 
-                            el.style.width = '450px'; // Largura fixa ideal para mobile
+                            el.style.width = '450px'; 
                             el.style.maxWidth = '450px';
                             el.style.margin = '0'; 
                             el.style.boxShadow = 'none';
@@ -635,24 +704,19 @@
 
                 const canvas = await html2canvas(element, options);
                 
-                // 2. Dimensões do PDF
-                // O truque da nitidez: O PDF tem o tamanho VISUAL do elemento (ex: 450px)
-                // Mas a imagem inserida nele tem 3x essa resolução (do scale: 3)
-                const imgWidth = 450; // Largura fixa em "pontos" do PDF
-                const pageHeight = (canvas.height * imgWidth) / canvas.width; // Altura proporcional
+                const imgWidth = 450; 
+                const pageHeight = (canvas.height * imgWidth) / canvas.width; 
 
                 const pdf = new jsPDF({
                     orientation: 'p',
                     unit: 'px',
-                    format: [imgWidth, pageHeight], // Tamanho da folha igual ao tamanho visual
+                    format: [imgWidth, pageHeight], 
                     hotfixes: ['px_scaling']
                 });
 
-                // 3. Inserir imagem de alta resolução compactada no tamanho visual
-                const imgData = canvas.toDataURL('image/png'); // PNG para texto nítido (sem artefatos de JPG)
+                const imgData = canvas.toDataURL('image/png'); 
                 pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, pageHeight);
                 
-                // --- NOME DO ARQUIVO ---
                 const now = new Date();
                 const daysOfWeek = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
                 const dayOfWeek = daysOfWeek[now.getDay()];
@@ -662,7 +726,6 @@
                 const year = now.getFullYear();
                 const weekNumber = getWeekNumber(now); 
 
-                // LÓGICA DE NOME DO ARQUIVO COM "DESCARTE"
                 const hasDiscard = harvestData.length > 0 && harvestData.some(item => item.isDiscard);
                 const prefix = hasDiscard ? "Descarte" : "Resumo Colheita";
 
@@ -671,7 +734,6 @@
 
             } catch (err) { 
                 console.error("Erro ao gerar PDF:", err);
-                // Removido alert para compatibilidade com o ambiente, usando console.error
             } 
             finally { 
                 document.querySelector('button[onclick="downloadPDF()"] span').innerText = originalText; 
