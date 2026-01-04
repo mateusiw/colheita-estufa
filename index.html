@@ -613,19 +613,60 @@
             const element = document.getElementById('report-card');
             const originalText = document.querySelector('button[onclick="downloadPDF()"] span').innerText;
             document.querySelector('button[onclick="downloadPDF()"] span').innerText = "Gerando PDF...";
+            
             try {
-                const canvas = await html2canvas(element, { scale: 2, useCORS: true, allowTaint: true, scrollY: -window.scrollY, windowWidth: 480, onclone: (doc) => {
-                    const el = doc.getElementById('report-card');
-                    const content = doc.getElementById('reportContent');
-                    if (el) { el.style.width = '450px'; el.style.margin = '0'; el.style.boxShadow = 'none'; }
-                    if (content) { content.style.height = 'auto'; content.style.overflow = 'visible'; }
-                }});
-                const pdf = new jsPDF({ orientation: 'p', unit: 'px', format: [canvas.width, canvas.height] });
-                pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, canvas.width, canvas.height);
+                // 1. Configurar opções para captura de ALTA FIDELIDADE
+                const options = {
+                    scale: 3, // 3x a resolução original (Retina Quality)
+                    useCORS: true,
+                    allowTaint: true,
+                    scrollY: -window.scrollY,
+                    backgroundColor: '#ffffff', // Garante fundo branco
+                    onclone: (doc) => {
+                        const el = doc.getElementById('report-card');
+                        const content = doc.getElementById('reportContent');
+                        
+                        // Força estilos para renderização perfeita
+                        if (el) { 
+                            el.style.width = '450px'; // Largura fixa ideal para mobile
+                            el.style.maxWidth = '450px';
+                            el.style.margin = '0'; 
+                            el.style.boxShadow = 'none';
+                            el.style.borderRadius = '0';
+                            el.style.border = 'none';
+                        }
+                        if (content) { 
+                            content.style.height = 'auto'; 
+                            content.style.overflow = 'visible'; 
+                            content.style.maxHeight = 'none';
+                        }
+                    }
+                };
+
+                const canvas = await html2canvas(element, options);
                 
+                // 2. Dimensões do PDF
+                // O truque da nitidez: O PDF tem o tamanho VISUAL do elemento (ex: 450px)
+                // Mas a imagem inserida nele tem 3x essa resolução (do scale: 3)
+                const imgWidth = 450; // Largura fixa em "pontos" do PDF
+                const pageHeight = (canvas.height * imgWidth) / canvas.width; // Altura proporcional
+
+                const pdf = new jsPDF({
+                    orientation: 'p',
+                    unit: 'px',
+                    format: [imgWidth, pageHeight], // Tamanho da folha igual ao tamanho visual
+                    hotfixes: ['px_scaling']
+                });
+
+                // 3. Inserir imagem de alta resolução compactada no tamanho visual
+                const imgData = canvas.toDataURL('image/png'); // PNG para texto nítido (sem artefatos de JPG)
+                pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, pageHeight);
+                
+                // --- NOME DO ARQUIVO ---
                 const now = new Date();
                 const daysOfWeek = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
                 const dayOfWeek = daysOfWeek[now.getDay()];
+                
                 const day = String(now.getDate()).padStart(2, '0');
                 const month = String(now.getMonth() + 1).padStart(2, '0');
                 const year = now.getFullYear();
@@ -640,8 +681,11 @@
 
             } catch (err) { 
                 console.error("Erro ao gerar PDF:", err);
+                // Removido alert para compatibilidade com o ambiente, usando console.error
             } 
-            finally { document.querySelector('button[onclick="downloadPDF()"] span').innerText = originalText; }
+            finally { 
+                document.querySelector('button[onclick="downloadPDF()"] span').innerText = originalText; 
+            }
         }
     </script>
 </body>
