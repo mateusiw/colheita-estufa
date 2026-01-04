@@ -130,7 +130,7 @@
                         <!-- PESO MÉDIO E TAMANHO MÉDIO -->
                         <div class="grid grid-cols-2 gap-2 mb-2">
                             <div>
-                                <label class="text-[10px] font-bold text-slate-500 mb-1 block">Peso Médio (g/unid.)</label> <!-- LABEL ATUALIZADA -->
+                                <label class="text-[10px] font-bold text-slate-500 mb-1 block">Peso Médio (g/unid.)</label>
                                 <input type="text" id="averageWeight" readonly class="w-full p-2 border border-slate-200 bg-slate-50 rounded-lg text-sm text-slate-600 font-bold focus:outline-none" placeholder="Auto">
                             </div>
                             <div>
@@ -528,7 +528,6 @@
                             
                             <!-- DADOS PRINCIPAIS -->
                             <div class="grid grid-cols-2 gap-2">
-                                <!-- RÓTULO ALTERADO AQUI -->
                                 ${createStatItem('package', item.dailyUnits, 'UNIDADES', true)}
                                 ${createStatItem('scale', item.weight || '-', 'PESO (KG)')}
                                 ${createStatItem('gauge', item.averageWeight || '-', 'PESO MÉDIO (G/UNID.)')}
@@ -551,19 +550,18 @@
             footer.innerHTML = `
                 <div class="bg-emerald-50 rounded-lg p-4 mb-4 flex justify-around items-center">
                     <div class="text-center">
-                        <!-- MANTIDO COMO TOTAL DE UNIDADES (SEM O HOJE PARA FICAR MAIS LIMPO TAMBÉM SE QUISER, MAS AQUI É O TOTAL GERAL) -->
                         <div class="text-[10px] text-emerald-600 font-bold uppercase mb-1">TOTAL DE UNIDADES</div>
                         <div class="text-xl font-extrabold text-emerald-800">${sumDailyUnits.toLocaleString('pt-BR')}</div>
                     </div>
                     <div class="w-px h-10 bg-emerald-200"></div>
                     <div class="text-center">
                         <div class="text-[10px] text-emerald-600 font-bold uppercase mb-1">TOTAL PESO (KG)</div>
-                        <div class="text-xl font-extrabold text-emerald-800">${sumWeight.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                        <div class="text-xl font-extrabold text-emerald-800">${sumWeight.toLocaleString('pt-BR', {minimumFractionDigits: 3, maximumFractionDigits: 3})}</div>
                     </div>
                     <div class="w-px h-10 bg-emerald-200"></div>
                     <div class="text-center">
-                        <div class="text-[10px] text-emerald-600 font-bold uppercase mb-1">MÉDIA GERAL (G/UNID.)</div> <!-- LABEL ATUALIZADA -->
-                        <div class="text-xl font-extrabold text-emerald-800">${overallAvg.toLocaleString('pt-BR', {minimumFractionDigits: 3, maximumFractionDigits: 3}) + ' g'}</div> <!-- SUFIXO 'g' -->
+                        <div class="text-[10px] text-emerald-600 font-bold uppercase mb-1">MÉDIA GERAL (G/UNID.)</div>
+                        <div class="text-xl font-extrabold text-emerald-800">${overallAvg.toLocaleString('pt-BR', {minimumFractionDigits: 3, maximumFractionDigits: 3}) + ' g'}</div>
                     </div>
                 </div>`;
             lucide.createIcons();
