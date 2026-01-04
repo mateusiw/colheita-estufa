@@ -130,7 +130,7 @@
                         <!-- PESO MÉDIO E TAMANHO MÉDIO -->
                         <div class="grid grid-cols-2 gap-2 mb-2">
                             <div>
-                                <label class="text-[10px] font-bold text-slate-500 mb-1 block">Peso Médio (g)</label>
+                                <label class="text-[10px] font-bold text-slate-500 mb-1 block">Peso Médio (g/unid.)</label> <!-- LABEL ATUALIZADA -->
                                 <input type="text" id="averageWeight" readonly class="w-full p-2 border border-slate-200 bg-slate-50 rounded-lg text-sm text-slate-600 font-bold focus:outline-none" placeholder="Auto">
                             </div>
                             <div>
@@ -297,9 +297,9 @@
             const units = parsePTBRNumber(unitsVal);
 
             if (weight > 0 && units > 0) {
-                // (Peso Kg * 1000) / Unidades = Gramas por Unidade
-                const avg = (weight * 1000) / units;
-                avgField.value = avg.toFixed(1).replace('.', ',') + ' g';
+                // ALTERAÇÃO: Cálculo (peso / unidades) com 3 casas decimais
+                const avg = weight / units;
+                avgField.value = avg.toFixed(3).replace('.', ',') + ' g'; // Unidade 'g' no formulário (texto)
             } else {
                 avgField.value = '';
             }
@@ -354,8 +354,8 @@
             
             document.getElementById('variety').selectedIndex = 0;
             document.getElementById('cucumberType').value = 'Padrão';
-            document.getElementById('harvestNumber').value = '1'; // Reset para 1 Colheita
-            document.getElementById('isDiscard').checked = false; // Reset Discard
+            document.getElementById('harvestNumber').value = '1'; 
+            document.getElementById('isDiscard').checked = false;
             updateCommercialInput();
             editingIndex = -1;
             
@@ -371,6 +371,7 @@
         function addItem(e) {
             e.preventDefault();
             
+            // Garantir que todos os IDs acessados aqui existem no HTML acima
             const item = {
                 talhao: document.getElementById('talhao').value,
                 variety: document.getElementById('variety').value,
@@ -380,15 +381,14 @@
                 averageWeight: document.getElementById('averageWeight').value,
                 cucumberType: document.getElementById('cucumberType').value,
                 cucumberSize: document.getElementById('cucumberSize').value,
-                harvestNumber: document.getElementById('harvestNumber').value, // Add Harvest Number
-                isDiscard: document.getElementById('isDiscard').checked // Capturar descarte
+                harvestNumber: document.getElementById('harvestNumber').value, 
+                isDiscard: document.getElementById('isDiscard').checked 
             };
 
             if (editingIndex >= 0) harvestData[editingIndex] = item;
             else harvestData.push(item);
             
-            sortHarvestData(); // --- ORDENAÇÃO AQUI ---
-            
+            sortHarvestData();
             saveData();
             clearBlockForm();
             renderReport();
@@ -412,9 +412,8 @@
             if(typeEl) typeEl.value = item.cucumberType || 'Padrão';
             
             const harvestEl = document.getElementById('harvestNumber');
-            if(harvestEl) harvestEl.value = item.harvestNumber || '1'; // Default para 1
+            if(harvestEl) harvestEl.value = item.harvestNumber || '1'; 
 
-            // Set Discard checkbox
             document.getElementById('isDiscard').checked = item.isDiscard || false;
             
             const btn = document.getElementById('submitBtn');
@@ -440,15 +439,12 @@
 
         function clearAll() {
             const btn = document.getElementById('clearAllBtn');
-            
             if (btn.innerText === "Confirmar?") {
                 harvestData = [];
                 saveData();
                 clearBlockForm();
                 renderReport();
                 renderList();
-                
-                // Reset button state
                 btn.innerText = "Limpar Tudo";
                 btn.classList.remove("text-red-700", "underline");
                 btn.classList.add("text-red-500");
@@ -457,7 +453,6 @@
                 btn.innerText = "Confirmar?";
                 btn.classList.remove("text-red-500");
                 btn.classList.add("text-red-700", "underline");
-                
                 clearConfirmTimer = setTimeout(() => {
                     btn.innerText = "Limpar Tudo";
                     btn.classList.remove("text-red-700", "underline");
@@ -484,7 +479,6 @@
         }
 
         function renderReport() {
-            // ATUALIZAR TÍTULO BASEADO NOS DADOS
             updateDynamicTitle();
 
             const container = document.getElementById('reportContent');
@@ -508,7 +502,7 @@
                     // Create Type Block with dynamic color
                     const typeHtml = createStatItem('tag', item.cucumberType || '-', 'TIPO', typeHighlight);
                     
-                    // Etiqueta de Descarte (ALTERADA AQUI)
+                    // Etiqueta de Descarte
                     const discardLabel = item.isDiscard 
                         ? `<div class="flex flex-col items-center justify-center gap-1 text-red-600 bg-red-50 border border-red-100 px-2 py-1.5 rounded-lg shadow-sm">
                              <span class="text-[10px] font-black uppercase tracking-widest leading-none">DESCARTE</span>
@@ -516,21 +510,17 @@
                            </div>` 
                         : '';
 
-                    // Lógica de texto plural para colheitas
                     const harvestCount = item.harvestNumber || '1';
                     const harvestText = harvestCount === '1' ? '1 Colheita' : `${harvestCount} Colheitas`;
 
                     container.innerHTML += `
                     <div class="p-5 hover:bg-slate-50 transition-colors group">
                         
-                        <!-- CABEÇALHO DO CARD -->
                         <div class="flex justify-between items-start mb-4 border-b border-slate-100 pb-2">
                             <div class="flex flex-col items-start">
-                                <!-- ID e QTD COLHEITAS no Header -->
                                 <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">ID Lote ${item.talhao} • ${harvestText}</span>
                                 <span class="text-xl font-black text-slate-800 uppercase tracking-tight leading-none">${item.commercialVariety ? `${item.variety} - ${item.commercialVariety}` : item.variety}</span>
                             </div>
-                            <!-- ETIQUETA DE DESCARTE AQUI -->
                             ${discardLabel}
                         </div>
 
@@ -538,9 +528,10 @@
                             
                             <!-- DADOS PRINCIPAIS -->
                             <div class="grid grid-cols-2 gap-2">
-                                ${createStatItem('package', item.dailyUnits, 'UNIDADES (HOJE)', true)}
+                                <!-- RÓTULO ALTERADO AQUI -->
+                                ${createStatItem('package', item.dailyUnits, 'UNIDADES', true)}
                                 ${createStatItem('scale', item.weight || '-', 'PESO (KG)')}
-                                ${createStatItem('gauge', item.averageWeight || '-', 'PESO MÉDIO (G)')}
+                                ${createStatItem('gauge', item.averageWeight || '-', 'PESO MÉDIO (G/UNID.)')}
                                 ${createStatItem('ruler', item.cucumberSize || '-', 'TAM. MÉDIO (CM)')}
                             </div>
                             
@@ -554,13 +545,14 @@
             }
 
             
-            // Cálculo do Peso Médio Geral
-            const overallAvg = sumDailyUnits > 0 ? (sumWeight * 1000) / sumDailyUnits : 0;
+            // Cálculo do Peso Médio Geral (ALTERADO PARA KG e 3 CASAS)
+            const overallAvg = sumDailyUnits > 0 ? (sumWeight / sumDailyUnits) : 0;
             
             footer.innerHTML = `
                 <div class="bg-emerald-50 rounded-lg p-4 mb-4 flex justify-around items-center">
                     <div class="text-center">
-                        <div class="text-[10px] text-emerald-600 font-bold uppercase mb-1">TOTAL DE UNIDADES (HOJE)</div>
+                        <!-- MANTIDO COMO TOTAL DE UNIDADES (SEM O HOJE PARA FICAR MAIS LIMPO TAMBÉM SE QUISER, MAS AQUI É O TOTAL GERAL) -->
+                        <div class="text-[10px] text-emerald-600 font-bold uppercase mb-1">TOTAL DE UNIDADES</div>
                         <div class="text-xl font-extrabold text-emerald-800">${sumDailyUnits.toLocaleString('pt-BR')}</div>
                     </div>
                     <div class="w-px h-10 bg-emerald-200"></div>
@@ -570,8 +562,8 @@
                     </div>
                     <div class="w-px h-10 bg-emerald-200"></div>
                     <div class="text-center">
-                        <div class="text-[10px] text-emerald-600 font-bold uppercase mb-1">MÉDIA GERAL (G)</div>
-                        <div class="text-xl font-extrabold text-emerald-800">${overallAvg.toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 1})}</div>
+                        <div class="text-[10px] text-emerald-600 font-bold uppercase mb-1">MÉDIA GERAL (G/UNID.)</div> <!-- LABEL ATUALIZADA -->
+                        <div class="text-xl font-extrabold text-emerald-800">${overallAvg.toLocaleString('pt-BR', {minimumFractionDigits: 3, maximumFractionDigits: 3}) + ' g'}</div> <!-- SUFIXO 'g' -->
                     </div>
                 </div>`;
             lucide.createIcons();
