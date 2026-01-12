@@ -147,10 +147,29 @@
                         <!-- DESCARTE -->
                         <div class="mb-2">
                             <label class="inline-flex items-center cursor-pointer">
-                                <input type="checkbox" id="isDiscard" class="sr-only peer">
+                                <input type="checkbox" id="isDiscard" onchange="toggleDiscardFields()" class="sr-only peer">
                                 <div class="relative w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-red-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-red-600"></div>
                                 <span class="ms-2 text-[10px] font-bold text-slate-600 uppercase">É Descarte?</span>
                             </label>
+                            
+                            <!-- CAMPOS EXTRAS DE DESCARTE (Ocultos por padrão) -->
+                            <div id="discardFields" class="hidden mt-3 p-3 bg-red-50 border border-red-100 rounded-xl animate-fade-in-down">
+                                <label class="text-[10px] font-bold text-red-500 uppercase mb-2 block flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> Detalhes do Descarte</label>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <div>
+                                        <label class="text-[10px] font-bold text-slate-500 mb-1 block">Início</label>
+                                        <input type="time" id="discardStart" onchange="calcDiscardDuration()" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-red-200 outline-none">
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] font-bold text-slate-500 mb-1 block">Fim</label>
+                                        <input type="time" id="discardEnd" onchange="calcDiscardDuration()" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-red-200 outline-none">
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] font-bold text-slate-500 mb-1 block">Duração</label>
+                                        <input type="text" id="discardDuration" placeholder="00:00" class="w-full p-2 border border-slate-300 bg-slate-100 rounded-lg text-sm font-bold text-slate-600" readonly>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -368,8 +387,41 @@
             if(wrapper) wrapper.innerHTML = html;
         }
 
+        // --- FUNÇÕES DE MANIPULAÇÃO DE ITENS E FORMULÁRIO ---
+        function addItem(e) {
+            e.preventDefault();
+            
+            const item = {
+                talhao: document.getElementById('talhao').value,
+                variety: document.getElementById('variety').value,
+                commercialVariety: document.getElementById('commercialVariety').value,
+                dailyUnits: document.getElementById('dailyUnits').value,
+                weight: document.getElementById('weight').value,
+                averageWeight: document.getElementById('averageWeight').value,
+                cucumberType: document.getElementById('cucumberType').value,
+                cucumberSize: document.getElementById('cucumberSize').value,
+                harvestNumber: document.getElementById('harvestNumber').value, 
+                isDiscard: document.getElementById('isDiscard').checked,
+                discardStart: document.getElementById('discardStart').value,
+                discardEnd: document.getElementById('discardEnd').value,
+                discardDuration: document.getElementById('discardDuration').value
+            };
+
+            if (editingIndex >= 0) {
+                harvestData[editingIndex] = item;
+            } else {
+                harvestData.push(item);
+            }
+            
+            sortHarvestData();
+            saveData();
+            clearBlockForm();
+            renderReport();
+            renderList();
+        }
+
         function clearBlockForm() {
-            ['talhao','dailyUnits','weight','averageWeight','cucumberSize'].forEach(id => {
+            ['talhao','dailyUnits','weight','averageWeight','cucumberSize','discardStart','discardEnd','discardDuration'].forEach(id => {
                 const el = document.getElementById(id);
                 if(el) el.value = '';
             });
@@ -384,7 +436,10 @@
             if(harvestEl) harvestEl.value = '1'; 
 
             const discardEl = document.getElementById('isDiscard');
-            if(discardEl) discardEl.checked = false;
+            if(discardEl) {
+                discardEl.checked = false;
+                toggleDiscardFields(); // Garante que esconde
+            }
 
             updateCommercialInput();
             editingIndex = -1;
@@ -403,32 +458,6 @@
             if(formContainer) formContainer.classList.remove('border-blue-300', 'ring-2', 'ring-blue-100');
             
             lucide.createIcons();
-        }
-
-        function addItem(e) {
-            e.preventDefault();
-            
-            const item = {
-                talhao: document.getElementById('talhao').value,
-                variety: document.getElementById('variety').value,
-                commercialVariety: document.getElementById('commercialVariety').value,
-                dailyUnits: document.getElementById('dailyUnits').value,
-                weight: document.getElementById('weight').value,
-                averageWeight: document.getElementById('averageWeight').value,
-                cucumberType: document.getElementById('cucumberType').value,
-                cucumberSize: document.getElementById('cucumberSize').value,
-                harvestNumber: document.getElementById('harvestNumber').value, 
-                isDiscard: document.getElementById('isDiscard').checked 
-            };
-
-            if (editingIndex >= 0) harvestData[editingIndex] = item;
-            else harvestData.push(item);
-            
-            sortHarvestData();
-            saveData();
-            clearBlockForm();
-            renderReport();
-            renderList();
         }
 
         function editItem(index) {
@@ -457,6 +486,14 @@
 
             document.getElementById('isDiscard').checked = item.isDiscard || false;
             
+            // Preencher campos de descarte e mostrar se necessário
+            if(item.isDiscard) {
+                document.getElementById('discardStart').value = item.discardStart || '';
+                document.getElementById('discardEnd').value = item.discardEnd || '';
+                document.getElementById('discardDuration').value = item.discardDuration || '';
+            }
+            toggleDiscardFields();
+
             const btn = document.getElementById('submitBtn');
             btn.innerHTML = '<i data-lucide="save" class="w-4 h-4"></i> <span>Salvar Alterações</span>';
             btn.classList.replace('bg-slate-800', 'bg-blue-600');
@@ -499,6 +536,45 @@
                     btn.classList.remove("text-red-700", "underline");
                     btn.classList.add("text-red-500");
                 }, 3000);
+            }
+        }
+
+        // --- FUNÇÕES NOVAS PARA DESCARTE ---
+        function toggleDiscardFields() {
+            const isChecked = document.getElementById('isDiscard').checked;
+            const container = document.getElementById('discardFields');
+            if(isChecked) {
+                container.classList.remove('hidden');
+            } else {
+                container.classList.add('hidden');
+            }
+        }
+
+        function calcDiscardDuration() {
+            const start = document.getElementById('discardStart').value;
+            const end = document.getElementById('discardEnd').value;
+            const durationEl = document.getElementById('discardDuration');
+
+            if (start && end) {
+                const [startH, startM] = start.split(':').map(Number);
+                const [endH, endM] = end.split(':').map(Number);
+
+                // Data base arbitrária para cálculo
+                let startDate = new Date(2000, 0, 1, startH, startM);
+                let endDate = new Date(2000, 0, 1, endH, endM);
+
+                // Se fim for menor que inicio, assume que virou o dia (pouco provável em colheita, mas ok)
+                if (endDate < startDate) {
+                    endDate.setDate(endDate.getDate() + 1);
+                }
+
+                let diffMs = endDate - startDate;
+                const hours = Math.floor(diffMs / 1000 / 60 / 60);
+                const minutes = Math.floor((diffMs / 1000 / 60) % 60);
+
+                durationEl.value = `${String(hours).padStart(2,'0')}:${String(minutes).padStart(2,'0')} h`;
+            } else {
+                durationEl.value = '';
             }
         }
 
@@ -564,6 +640,26 @@
                     const displayWeight = formatSmart(rawWeight);
                     const displayAvg = formatSmart(calculatedAvg);
 
+                    // HTML dos detalhes de descarte
+                    let discardDetailsHtml = '';
+                    if (item.isDiscard && (item.discardStart || item.discardEnd)) {
+                        discardDetailsHtml = `
+                        <div class="mt-3 pt-3 border-t border-red-100 flex items-center justify-between gap-2 text-[10px] text-red-700 bg-red-50 p-2 rounded-lg">
+                             <div class="flex items-center gap-1 px-2 py-1">
+                                <span class="font-bold text-emerald-600">Início:</span> 
+                                <span class="font-bold text-slate-700">${item.discardStart || '--:--'}</span>
+                             </div>
+                             <div class="flex items-center gap-1 px-2 py-1">
+                                <span class="font-bold text-red-600">Fim:</span> 
+                                <span class="font-bold text-slate-700">${item.discardEnd || '--:--'}</span>
+                             </div>
+                             <div class="flex items-center gap-1 px-2 py-1">
+                                <span class="font-bold text-red-800">Total:</span> 
+                                <span class="font-black text-slate-800">${item.discardDuration || '00:00 h'}</span>
+                             </div>
+                        </div>`;
+                    }
+
                     container.innerHTML += `
                     <div class="p-5 hover:bg-slate-50 transition-colors group">
                         
@@ -589,6 +685,9 @@
                             <div class="grid grid-cols-1">
                                 ${typeHtml}
                             </div>
+
+                            <!-- DETALHES DE DESCARTE -->
+                            ${discardDetailsHtml}
                         </div>
                     </div>`;
                 });
