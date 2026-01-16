@@ -665,8 +665,14 @@
                         
                         <div class="flex justify-between items-start mb-4 border-b border-slate-100 pb-2">
                             <div class="flex flex-col items-start">
-                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Setor ${item.talhao} • ${harvestText}</span>
-                                <span class="text-xl font-black text-slate-800 uppercase tracking-tight leading-none">${item.commercialVariety ? `${item.variety} - ${item.commercialVariety}` : item.variety}</span>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="text-xl font-black text-slate-800 uppercase tracking-tight leading-none">${item.commercialVariety ? `${item.variety} - ${item.commercialVariety}` : item.variety}</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">SETOR ${item.talhao}</span>
+                                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">-</span>
+                                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">${harvestText}</span>
+                                </div>
                             </div>
                             ${discardLabel}
                         </div>
