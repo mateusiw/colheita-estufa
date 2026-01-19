@@ -306,24 +306,8 @@
                 // >= 1kg: Remove zeros extras (ex: 18,300 -> 18,3)
                 return num.toLocaleString('pt-BR', {minimumFractionDigits: 0, maximumFractionDigits: 3});
             } else {
-                // < 1kg: Formata inicialmente com 3 casas
-                let formatted = num.toLocaleString('pt-BR', {minimumFractionDigits: 3, maximumFractionDigits: 3});
-                
-                // LÓGICA DE PRECISÃO (Regra do 0,150 vs 0,10)
-                if (formatted.endsWith('0')) {
-                    // Verifica o penúltimo caractere (o decimal antes do zero final)
-                    const secondDecimal = formatted[formatted.length - 2];
-                    
-                    // Se for '5' (ex: 0,150, 0,250), mantém o zero para indicar precisão de 50g
-                    if (secondDecimal === '5') {
-                        return formatted;
-                    }
-                    
-                    // Caso contrário (ex: 0,100 -> 0,10; 0,900 -> 0,90), remove o zero final
-                    return formatted.substring(0, formatted.length - 1);
-                }
-                
-                return formatted;
+                // < 1kg: Formata SEMPRE com 3 casas para manter precisão (ex: 0,160)
+                return num.toLocaleString('pt-BR', {minimumFractionDigits: 3, maximumFractionDigits: 3});
             }
         }
 
