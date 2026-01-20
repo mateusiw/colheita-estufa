@@ -206,13 +206,15 @@
                     </div>
                 </div>
 
+                <!-- NEW SUMMARY STATS LOCATION (TOP) -->
+                <div id="summaryStats" class="bg-white px-4 pt-4 shrink-0">
+                    <!-- Totals will be injected here -->
+                </div>
+
                 <!-- Conteúdo -->
                 <div id="reportContent" class="divide-y divide-slate-50 flex-1 overflow-y-auto">
                     <div class="p-8 text-center text-slate-400 text-xs italic leading-relaxed h-full flex items-center justify-center">Adicione blocos no formulário ao lado.</div>
                 </div>
-
-                <!-- Footer Operacional -->
-                <div id="operationalFooter" class="bg-white border-t border-slate-200 p-4 shrink-0"></div>
 
                 <!-- Rodapé Marca -->
                 <div class="bg-slate-100 p-3 text-center border-t border-slate-200 shrink-0">
@@ -584,7 +586,7 @@
             updateDynamicTitle();
 
             const container = document.getElementById('reportContent');
-            const footer = document.getElementById('operationalFooter');
+            const summaryStats = document.getElementById('summaryStats');
             let sumDailyUnits = 0, sumWeight = 0;
 
             if (!harvestData.length) {
@@ -691,21 +693,21 @@
             const totalWeightFormatted = formatSmart(sumWeight);
             const overallAvgFormatted = formatSmart(overallAvg);
 
-            footer.innerHTML = `
-                <div class="bg-emerald-50 rounded-lg p-4 mb-4 flex justify-around items-center">
+            summaryStats.innerHTML = `
+                <div class="bg-orange-50 rounded-lg p-4 flex justify-around items-center border border-orange-100 shadow-sm">
                     <div class="text-center">
-                        <div class="text-[10px] text-emerald-600 font-bold uppercase mb-1">TOTAL DE UNIDADES</div>
-                        <div class="text-xl font-extrabold text-emerald-800">${sumDailyUnits.toLocaleString('pt-BR')}</div>
+                        <div class="text-[10px] text-orange-600 font-bold uppercase mb-1">TOTAL DE UNIDADES</div>
+                        <div class="text-xl font-extrabold text-orange-800">${sumDailyUnits.toLocaleString('pt-BR')}</div>
                     </div>
-                    <div class="w-px h-10 bg-emerald-200"></div>
+                    <div class="w-px h-10 bg-orange-200"></div>
                     <div class="text-center">
-                        <div class="text-[10px] text-emerald-600 font-bold uppercase mb-1">TOTAL PESO (KG)</div>
-                        <div class="text-xl font-extrabold text-emerald-800">${totalWeightFormatted}</div>
+                        <div class="text-[10px] text-orange-600 font-bold uppercase mb-1">TOTAL PESO (KG)</div>
+                        <div class="text-xl font-extrabold text-orange-800">${totalWeightFormatted}</div>
                     </div>
-                    <div class="w-px h-10 bg-emerald-200"></div>
+                    <div class="w-px h-10 bg-orange-200"></div>
                     <div class="text-center">
-                        <div class="text-[10px] text-emerald-600 font-bold uppercase mb-1">MÉDIA GERAL (G/UNID.)</div>
-                        <div class="text-xl font-extrabold text-emerald-800">${overallAvgFormatted + ' g'}</div>
+                        <div class="text-[10px] text-orange-600 font-bold uppercase mb-1">MÉDIA GERAL (G/UNID.)</div>
+                        <div class="text-xl font-extrabold text-orange-800">${overallAvgFormatted + ' g'}</div>
                     </div>
                 </div>`;
             lucide.createIcons();
