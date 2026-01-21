@@ -28,12 +28,6 @@
         input, select, textarea { line-height: 1.5; }
         .animate-fade-in-down { animation: fadeInDown 0.3s ease-out forwards; }
         @keyframes fadeInDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        /* Modal Animation */
-        .modal-enter { opacity: 0; transform: scale(0.95); }
-        .modal-enter-active { opacity: 1; transform: scale(1); transition: opacity 0.2s, transform 0.2s; }
-        .modal-exit { opacity: 1; transform: scale(1); }
-        .modal-exit-active { opacity: 0; transform: scale(0.95); transition: opacity 0.2s, transform 0.2s; }
     </style>
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen pb-20 select-none">
@@ -48,11 +42,6 @@
             </div>
         </div>
         <div class="flex gap-2">
-            <!-- Botão Histórico -->
-            <button type="button" onclick="openHistoryModal()" class="flex items-center justify-center w-8 h-8 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-all active:scale-95 border border-blue-100" title="Histórico GitHub">
-                <i data-lucide="history" class="w-4 h-4"></i>
-            </button>
-            
             <button type="button" onclick="downloadPDF()" class="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-lg shadow-emerald-600/20 transition-all active:scale-95 active:bg-emerald-800">
                 <i data-lucide="file-down" class="w-4 h-4"></i>
                 <span>Baixar PDF</span>
@@ -238,41 +227,9 @@
         </div>
     </div>
 
-    <!-- MODAL HISTÓRICO -->
-    <div id="historyModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm hidden transition-all duration-300">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 flex flex-col max-h-[80vh] transform transition-all scale-95" id="historyModalContent">
-            <div class="flex justify-between items-center mb-4 shrink-0">
-                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-                    <i data-lucide="history" class="w-5 h-5 text-blue-600"></i> Histórico de Envios
-                </h3>
-                <button onclick="closeHistoryModal()" class="text-slate-400 hover:text-slate-600">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-            
-            <div id="historyList" class="flex-1 overflow-y-auto space-y-2 pr-2">
-                <!-- Lista será preenchida via JS -->
-                <div class="text-center py-8 text-slate-400 text-sm">
-                    Carregando...
-                </div>
-            </div>
-
-            <div class="mt-4 pt-3 border-t border-slate-100 text-center text-[10px] text-slate-400 shrink-0">
-                Dados obtidos do diretório <code class="bg-slate-100 px-1 rounded">dados_colheita</code> do repositório configurado.
-            </div>
-        </div>
-    </div>
-
     <!-- JAVASCRIPT -->
     <script>
         console.log("Aplicação 'Resumo de Colheita SPG Oásis' reiniciada.");
-
-        // CONFIGURAÇÕES HARDCODED DO GITHUB
-        const GH_CONFIG = {
-            owner: 'mateusiw',
-            repo: 'colheita-estufa',
-            token: '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'
-        };
 
         let harvestData = JSON.parse(localStorage.getItem('spg_harvestData')) || [];
         let editingIndex = -1;
@@ -288,180 +245,6 @@
             renderList(); 
             renderReport(); 
         }, 100);
-
-        // --- GITHUB INTEGRATION & HISTORY ---
-        
-        function openHistoryModal() {
-            const modal = document.getElementById('historyModal');
-            const content = document.getElementById('historyModalContent');
-            toggleModalGeneric(modal, content);
-            if (!modal.classList.contains('hidden')) {
-                fetchHistory();
-            }
-        }
-
-        function closeHistoryModal() {
-             const modal = document.getElementById('historyModal');
-             const content = document.getElementById('historyModalContent');
-             toggleModalGeneric(modal, content);
-        }
-
-        function toggleModalGeneric(modal, content) {
-            if (modal.classList.contains('hidden')) {
-                modal.classList.remove('hidden');
-                setTimeout(() => {
-                    content.classList.remove('scale-95', 'opacity-0');
-                    content.classList.add('scale-100', 'opacity-100');
-                }, 10);
-            } else {
-                content.classList.remove('scale-100', 'opacity-100');
-                content.classList.add('scale-95', 'opacity-0');
-                setTimeout(() => {
-                    modal.classList.add('hidden');
-                }, 200);
-            }
-        }
-
-        async function fetchHistory() {
-            const config = GH_CONFIG;
-            const listEl = document.getElementById('historyList');
-            
-            // Validação simples
-            if (!config.token || !config.owner || !config.repo) {
-                listEl.innerHTML = `<div class="text-center py-4 text-red-500 text-sm">Erro: Configuração do GitHub incompleta no código.</div>`;
-                return;
-            }
-
-            try {
-                const url = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/dados_colheita`;
-                const response = await fetch(url, {
-                    headers: { 'Authorization': `token ${config.token}` }
-                });
-
-                if (!response.ok) {
-                    if (response.status === 404) {
-                        listEl.innerHTML = `<div class="text-center py-4 text-slate-500 text-sm">Nenhum histórico encontrado (pasta 'dados_colheita' vazia ou inexistente).</div>`;
-                    } else {
-                        throw new Error('Erro ao buscar histórico');
-                    }
-                    return;
-                }
-
-                const data = await response.json();
-                
-                // Sort Descending (by name usually works if format is YYYY-MM-DD)
-                data.sort((a, b) => b.name.localeCompare(a.name));
-
-                listEl.innerHTML = '';
-                if (data.length === 0) {
-                     listEl.innerHTML = `<div class="text-center py-4 text-slate-500 text-sm">Pasta vazia.</div>`;
-                     return;
-                }
-
-                data.forEach(file => {
-                    if (file.name.endsWith('.json')) {
-                        // Tentar limpar o nome do arquivo para exibição
-                        const displayName = file.name.replace('.json', '').replace('colheita_', '').replace(/_/g, ' ');
-                        
-                        listEl.innerHTML += `
-                        <div class="flex justify-between items-center p-3 bg-slate-50 border border-slate-100 rounded-lg hover:bg-slate-100 transition-colors">
-                            <div class="flex flex-col">
-                                <span class="text-sm font-bold text-slate-700 break-all">${displayName}</span>
-                                <span class="text-[10px] text-slate-400">${(file.size / 1024).toFixed(1)} KB</span>
-                            </div>
-                            <div class="flex gap-2">
-                                <a href="${file.html_url}" target="_blank" class="p-2 text-slate-400 hover:text-slate-600 hover:bg-white rounded-md transition-all" title="Ver no GitHub">
-                                    <i data-lucide="external-link" class="w-4 h-4"></i>
-                                </a>
-                                <button onclick="loadHistoryItem('${file.url}')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-md shadow-sm transition-all active:scale-95 flex items-center gap-1">
-                                    <i data-lucide="download-cloud" class="w-3 h-3"></i> Carregar
-                                </button>
-                            </div>
-                        </div>`;
-                    }
-                });
-                lucide.createIcons();
-
-            } catch (err) {
-                console.error(err);
-                listEl.innerHTML = `<div class="text-center py-4 text-red-500 text-sm">Erro de conexão: ${err.message}</div>`;
-            }
-        }
-
-        async function loadHistoryItem(apiUrl) {
-            const config = GH_CONFIG;
-            if (!confirm("Isso irá substituir os dados atuais da tela pelos dados do histórico. Deseja continuar?")) return;
-
-            try {
-                // Fetch content (which is base64 encoded usually from API)
-                const response = await fetch(apiUrl, {
-                     headers: { 'Authorization': `token ${config.token}` }
-                });
-                const fileData = await response.json();
-                
-                // Decode Base64 Content
-                // GitHub API returns 'content' field in Base64
-                const jsonString = new TextDecoder().decode(Uint8Array.from(atob(fileData.content), c => c.charCodeAt(0)));
-                const parsedData = JSON.parse(jsonString);
-
-                // Update App State
-                harvestData = Array.isArray(parsedData) ? parsedData : [];
-                
-                // Se o JSON antigo não tiver os campos novos, não tem problema, o JS lida com undefined
-                saveData();
-                renderList();
-                renderReport();
-                closeHistoryModal();
-                alert("Dados carregados com sucesso!");
-
-            } catch (err) {
-                console.error(err);
-                alert("Erro ao carregar arquivo: " + err.message);
-            }
-        }
-
-        async function uploadToGitHub(filename, data) {
-            const config = GH_CONFIG;
-            
-            if (!config.token || !config.owner || !config.repo) {
-                console.log('GitHub não configurado. Pule o upload.');
-                return;
-            }
-
-            // Converter dados para Base64 (UTF-8 safe)
-            const jsonString = JSON.stringify(data, null, 2);
-            // Função segura para caracteres UTF-8 em base64
-            const content = btoa(new TextEncoder().encode(jsonString).reduce((data, byte) => data + String.fromCharCode(byte), ''));
-            
-            const path = `dados_colheita/${filename}.json`;
-            const url = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/${path}`;
-
-            try {
-                // Tenta criar o arquivo
-                const response = await fetch(url, {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': `token ${config.token}`,
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        message: `Auto-upload: ${filename}`,
-                        content: content
-                    })
-                });
-
-                if (response.ok) {
-                    console.log(`Sucesso! Arquivo ${filename}.json enviado para GitHub.`);
-                    // Opcional: Mostrar um toast/aviso pequeno
-                } else {
-                    const err = await response.json();
-                    console.error('Erro GitHub:', err);
-                    alert(`Erro ao enviar para GitHub: ${err.message}`);
-                }
-            } catch (error) {
-                console.error('Erro de rede GitHub:', error);
-            }
-        }
 
         // --- FUNÇÕES DE DATA E HORA ---
         function getWeekNumber(d) {
@@ -963,20 +746,6 @@
             document.querySelector('button[onclick="downloadPDF()"] span').innerText = "Gerando PDF...";
             
             try {
-                // TENTA FAZER O UPLOAD PARA O GITHUB PRIMEIRO (OU EM PARALELO)
-                const now = new Date();
-                const day = String(now.getDate()).padStart(2, '0');
-                const month = String(now.getMonth() + 1).padStart(2, '0');
-                const year = now.getFullYear();
-                const timestamp = now.getTime();
-                
-                // Nome do arquivo de dados para o GitHub (usando timestamp para ser único)
-                const jsonFilename = `colheita_${year}-${month}-${day}_${timestamp}`;
-                
-                // Dispara o upload (sem await para não travar o PDF se falhar a rede)
-                uploadToGitHub(jsonFilename, harvestData);
-
-                // GERAÇÃO DO PDF
                 const options = {
                     scale: 3, 
                     useCORS: true,
@@ -1018,8 +787,13 @@
                 const imgData = canvas.toDataURL('image/png'); 
                 pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, pageHeight);
                 
+                const now = new Date();
                 const daysOfWeek = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
                 const dayOfWeek = daysOfWeek[now.getDay()];
+                
+                const day = String(now.getDate()).padStart(2, '0');
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const year = now.getFullYear();
                 const weekNumber = getWeekNumber(now); 
 
                 const hasDiscard = harvestData.length > 0 && harvestData.some(item => item.isDiscard);
@@ -1038,5 +812,3 @@
     </script>
 </body>
 </html>
-
-
