@@ -42,14 +42,13 @@
             </div>
         </div>
         <div class="flex gap-2">
-            <!-- Botão Imagem (Renomeado e Atualizado) -->
-            <button type="button" onclick="downloadImage()" class="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-lg shadow-emerald-600/20 transition-all active:scale-95 active:bg-emerald-800">
-                <i data-lucide="share-2" class="w-4 h-4"></i>
-                <span>Enviar Imagem para o WhatsApp</span>
+            <!-- Botão Imagem (Adicionado) -->
+            <button type="button" onclick="downloadImage()" class="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-bold shadow-lg shadow-orange-500/20 transition-all active:scale-95 active:bg-orange-700">
+                <i data-lucide="image" class="w-4 h-4"></i>
+                <span>Imagem</span>
             </button>
 
-            <!-- Botão PDF (Oculto) -->
-            <button type="button" onclick="downloadPDF()" class="hidden items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-lg shadow-emerald-600/20 transition-all active:scale-95 active:bg-emerald-800">
+            <button type="button" onclick="downloadPDF()" class="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-lg shadow-emerald-600/20 transition-all active:scale-95 active:bg-emerald-800">
                 <i data-lucide="file-down" class="w-4 h-4"></i>
                 <span>Baixar PDF</span>
             </button>
@@ -833,7 +832,7 @@
             const element = document.getElementById('report-card');
             const btnSpan = document.querySelector('button[onclick="downloadImage()"] span');
             const originalText = btnSpan.innerText;
-            btnSpan.innerText = "Gerando...";
+            btnSpan.innerText = "Gerando Imagem...";
 
             try {
                 if (harvestData.length === 0) {
@@ -842,17 +841,18 @@
                 }
 
                 const options = {
-                    scale: 5, 
+                    scale: 5, // Alta resolução (mantido do anexo)
                     useCORS: true, 
                     allowTaint: true,
                     scrollY: -window.scrollY,
                     backgroundColor: '#ffffff', 
+                    // REMOVIDO: windowWidth: 480 (Isso estava alterando a largura incorretamente)
                     onclone: (doc) => {
                         const el = doc.getElementById('report-card');
                         const content = doc.getElementById('reportContent');
                         
                         if (el) { 
-                            el.style.width = '450px'; 
+                            el.style.width = '450px'; // Mantém consistência com o PDF
                             el.style.maxWidth = '450px';
                             el.style.margin = '0'; 
                             el.style.boxShadow = 'none';
@@ -868,8 +868,9 @@
                 };
 
                 const canvas = await html2canvas(element, options);
+                const imgData = canvas.toDataURL('image/png');
                 
-                // Lógica de nome do arquivo
+                // --- LÓGICA DE NOME DO ARQUIVO (Do Anexo) ---
                 const now = new Date();
                 const dateStr = now.toLocaleDateString('pt-BR').replace(/\//g, '-');
                 const weekNum = getWeekNumber(now);
@@ -882,35 +883,13 @@
 
                 const filename = `${prefix} - ${weekday} ${dateStr} Semana ${weekNum} - ${partnerName}.png`;
 
-                // Tenta compartilhar nativamente (Mobile)
-                canvas.toBlob(async (blob) => {
-                    const file = new File([blob], filename, { type: 'image/png' });
-
-                    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-                        try {
-                            await navigator.share({
-                                files: [file],
-                                title: filename,
-                                text: 'Segue o resumo da colheita.'
-                            });
-                        } catch (err) {
-                            if (err.name !== 'AbortError') {
-                                console.error('Erro ao compartilhar:', err);
-                                // Fallback se falhar
-                                downloadFile(canvas.toDataURL('image/png'), filename);
-                            }
-                        }
-                    } else {
-                        // Fallback Desktop
-                        downloadFile(canvas.toDataURL('image/png'), filename);
-                        
-                        // Abre WhatsApp Web como fallback visual
-                        showMessageModal('Imagem Salva', 'A imagem foi baixada. Abrindo WhatsApp...', 'success');
-                        setTimeout(() => {
-                             window.open('https://web.whatsapp.com/', '_blank');
-                        }, 2000);
-                    }
-                }, 'image/png');
+                // Link de Download
+                const link = document.createElement('a');
+                link.href = imgData;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
 
             } catch (err) { 
                 console.error("Erro ao gerar Imagem:", err);
@@ -919,15 +898,6 @@
             finally { 
                 btnSpan.innerText = originalText; 
             }
-        }
-
-        function downloadFile(uri, name) {
-            const link = document.createElement('a');
-            link.href = uri;
-            link.download = name;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
         }
 
         // --- FUNÇÕES DE MENSAGEM MODAL ---
