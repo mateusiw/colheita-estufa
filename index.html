@@ -42,7 +42,14 @@
             </div>
         </div>
         <div class="flex gap-2">
-            <button type="button" onclick="downloadPDF()" class="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-lg shadow-emerald-600/20 transition-all active:scale-95 active:bg-emerald-800">
+            <!-- Botão Imagem (Renomeado e Atualizado) -->
+            <button type="button" onclick="downloadImage()" class="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-lg shadow-emerald-600/20 transition-all active:scale-95 active:bg-emerald-800">
+                <i data-lucide="share-2" class="w-4 h-4"></i>
+                <span>Enviar Imagem para o WhatsApp</span>
+            </button>
+
+            <!-- Botão PDF (Oculto) -->
+            <button type="button" onclick="downloadPDF()" class="hidden items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-lg shadow-emerald-600/20 transition-all active:scale-95 active:bg-emerald-800">
                 <i data-lucide="file-down" class="w-4 h-4"></i>
                 <span>Baixar PDF</span>
             </button>
@@ -224,6 +231,18 @@
                 </div>
 
             </div>
+        </div>
+    </div>
+
+    <!-- MODAL GENÉRICO DE MENSAGEM -->
+    <div id="messageModal" class="fixed inset-0 bg-black/50 z-50 hidden flex justify-center items-center backdrop-blur-sm transition-opacity duration-300">
+        <div class="bg-white rounded-xl shadow-2xl p-6 w-11/12 max-w-sm transform transition-all scale-100 text-center">
+            <div id="msgIconContainer" class="mx-auto flex items-center justify-center h-12 w-12 rounded-full mb-4">
+                <!-- Icon injetado via JS -->
+            </div>
+            <h3 id="msgTitle" class="text-lg font-bold text-slate-800"></h3>
+            <p id="msgText" class="text-sm text-slate-500 mt-2 mb-4"></p>
+            <button onclick="hideMessageModal()" class="w-full px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-lg text-sm transition-colors">OK</button>
         </div>
     </div>
 
@@ -808,6 +827,136 @@
             finally { 
                 document.querySelector('button[onclick="downloadPDF()"] span').innerText = originalText; 
             }
+        }
+
+        async function downloadImage() {
+            const element = document.getElementById('report-card');
+            const btnSpan = document.querySelector('button[onclick="downloadImage()"] span');
+            const originalText = btnSpan.innerText;
+            btnSpan.innerText = "Gerando...";
+
+            try {
+                if (harvestData.length === 0) {
+                    showMessageModal('Atenção', 'Adicione registros primeiro.', 'error');
+                    return;
+                }
+
+                const options = {
+                    scale: 5, 
+                    useCORS: true, 
+                    allowTaint: true,
+                    scrollY: -window.scrollY,
+                    backgroundColor: '#ffffff', 
+                    onclone: (doc) => {
+                        const el = doc.getElementById('report-card');
+                        const content = doc.getElementById('reportContent');
+                        
+                        if (el) { 
+                            el.style.width = '450px'; 
+                            el.style.maxWidth = '450px';
+                            el.style.margin = '0'; 
+                            el.style.boxShadow = 'none';
+                            el.style.borderRadius = '0';
+                            el.style.border = 'none';
+                        }
+                        if (content) { 
+                            content.style.height = 'auto'; 
+                            content.style.overflow = 'visible'; 
+                            content.style.maxHeight = 'none';
+                        }
+                    }
+                };
+
+                const canvas = await html2canvas(element, options);
+                
+                // Lógica de nome do arquivo
+                const now = new Date();
+                const dateStr = now.toLocaleDateString('pt-BR').replace(/\//g, '-');
+                const weekNum = getWeekNumber(now);
+                let weekday = now.toLocaleDateString('pt-BR', { weekday: 'long' });
+                weekday = weekday.charAt(0).toUpperCase() + weekday.slice(1);
+
+                const hasDiscard = harvestData.length > 0 && harvestData.some(item => item.isDiscard);
+                const prefix = hasDiscard ? "Descarte" : "Resumo Colheita";
+                const partnerName = "SPG SEDE";
+
+                const filename = `${prefix} - ${weekday} ${dateStr} Semana ${weekNum} - ${partnerName}.png`;
+
+                // Tenta compartilhar nativamente (Mobile)
+                canvas.toBlob(async (blob) => {
+                    const file = new File([blob], filename, { type: 'image/png' });
+
+                    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                        try {
+                            await navigator.share({
+                                files: [file],
+                                title: filename,
+                                text: 'Segue o resumo da colheita.'
+                            });
+                        } catch (err) {
+                            if (err.name !== 'AbortError') {
+                                console.error('Erro ao compartilhar:', err);
+                                // Fallback se falhar
+                                downloadFile(canvas.toDataURL('image/png'), filename);
+                            }
+                        }
+                    } else {
+                        // Fallback Desktop
+                        downloadFile(canvas.toDataURL('image/png'), filename);
+                        
+                        // Abre WhatsApp Web como fallback visual
+                        showMessageModal('Imagem Salva', 'A imagem foi baixada. Abrindo WhatsApp...', 'success');
+                        setTimeout(() => {
+                             window.open('https://web.whatsapp.com/', '_blank');
+                        }, 2000);
+                    }
+                }, 'image/png');
+
+            } catch (err) { 
+                console.error("Erro ao gerar Imagem:", err);
+                showMessageModal('Erro', 'Falha ao gerar imagem: ' + err.message, 'error');
+            } 
+            finally { 
+                btnSpan.innerText = originalText; 
+            }
+        }
+
+        function downloadFile(uri, name) {
+            const link = document.createElement('a');
+            link.href = uri;
+            link.download = name;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // --- FUNÇÕES DE MENSAGEM MODAL ---
+        function showMessageModal(title, message, type) {
+            const modal = document.getElementById('messageModal');
+            const iconContainer = document.getElementById('msgIconContainer');
+            const titleEl = document.getElementById('msgTitle');
+            const textEl = document.getElementById('msgText');
+
+            titleEl.innerText = title;
+            textEl.innerText = message;
+
+            if (type === 'error') {
+                iconContainer.className = "mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4";
+                iconContainer.innerHTML = '<i data-lucide="alert-circle" class="h-6 w-6 text-red-600"></i>';
+            } else if (type === 'success') {
+                iconContainer.className = "mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4";
+                iconContainer.innerHTML = '<i data-lucide="check-circle" class="h-6 w-6 text-green-600"></i>';
+            } else {
+                iconContainer.className = "mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 mb-4";
+                iconContainer.innerHTML = '<i data-lucide="info" class="h-6 w-6 text-blue-600"></i>';
+            }
+
+            modal.classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function hideMessageModal() {
+            document.getElementById('messageModal').classList.add('hidden');
         }
     </script>
 </body>
