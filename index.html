@@ -60,6 +60,14 @@
         
         <!-- COLUNA DA ESQUERDA: CONTROLES -->
         <div class="w-full lg:w-1/3 space-y-4">
+
+            <!-- 1. DATA DA COLHEITA (NOVO) -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col gap-2">
+                <label class="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
+                    <i data-lucide="calendar" class="w-4 h-4 text-emerald-600"></i> Data da Colheita
+                </label>
+                <input type="date" id="reportDate" onchange="updateDynamicTitle()" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none text-slate-700 font-bold uppercase">
+            </div>
             
             <!-- 2. ADICIONAR BLOCOS -->
             <div id="formContainer" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 transition-colors duration-300">
@@ -255,13 +263,24 @@
         let clearConfirmTimer;
 
         lucide.createIcons();
-        updateDynamicTitle(); 
         
         // --- INICIALIZAÇÃO CORRETA DO FORMULÁRIO ---
         setTimeout(() => {
+            // Inicializar o campo de data com a data atual
+            const dateInput = document.getElementById('reportDate');
+            if (dateInput) {
+                const today = new Date();
+                const yyyy = today.getFullYear();
+                const mm = String(today.getMonth() + 1).padStart(2, '0');
+                const dd = String(today.getDate()).padStart(2, '0');
+                dateInput.value = `${yyyy}-${mm}-${dd}`;
+            }
+
             clearBlockForm();
             sortHarvestData();
             renderList(); 
+            // Agora chamamos updateDynamicTitle para usar a data do input
+            updateDynamicTitle();
             renderReport(); 
         }, 100);
 
@@ -273,20 +292,39 @@
             return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
         }
 
+        // --- FUNÇÃO PARA PEGAR A DATA SELECIONADA ---
+        function getSelectedDate() {
+            const dateInput = document.getElementById('reportDate');
+            if (dateInput && dateInput.value) {
+                // Criar data baseada no input (YYYY-MM-DD)
+                // Usamos split para criar a data corretamente sem fuso horário atrapalhar o dia
+                const parts = dateInput.value.split('-');
+                return new Date(parts[0], parts[1] - 1, parts[2]);
+            }
+            return new Date();
+        }
+
         function updateDynamicTitle() {
-            const now = new Date();
+            // Data selecionada pelo usuário para o RELATÓRIO
+            const reportDate = getSelectedDate();
+            
+            // Hora atual para a SAUDAÇÃO (Greeting)
+            const now = new Date(); 
+            
             const hours = now.getHours();
             const minutes = String(now.getMinutes()).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const year = now.getFullYear();
-            const weekNumber = getWeekNumber(now);
-            const daysOfWeek = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
-            const dayOfWeek = daysOfWeek[now.getDay()];
-
-            let greeting = hours < 12 ? "Bom dia, Pessoal!" : (hours < 18 ? "Boa tarde, Pessoal!" : "Boa noite, Pessoal!");
             const ampm = hours >= 12 ? 'PM' : 'AM';
             const timeString = `${String(hours).padStart(2, '0')}:${minutes}${ampm}`; 
+
+            // Dados baseados na data selecionada
+            const day = String(reportDate.getDate()).padStart(2, '0');
+            const month = String(reportDate.getMonth() + 1).padStart(2, '0');
+            const year = reportDate.getFullYear();
+            const weekNumber = getWeekNumber(reportDate);
+            const daysOfWeek = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+            const dayOfWeek = daysOfWeek[reportDate.getDay()];
+
+            let greeting = hours < 12 ? "Bom dia, Pessoal!" : (hours < 18 ? "Boa tarde, Pessoal!" : "Boa noite, Pessoal!");
 
             // VERIFICAÇÃO SE É DESCARTE PARA O TÍTULO
             const hasDiscard = harvestData.length > 0 && harvestData.some(item => item.isDiscard);
@@ -806,14 +844,16 @@
                 const imgData = canvas.toDataURL('image/png'); 
                 pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, pageHeight);
                 
-                const now = new Date();
-                const daysOfWeek = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
-                const dayOfWeek = daysOfWeek[now.getDay()];
+                // Usar a data selecionada
+                const reportDate = getSelectedDate();
                 
-                const day = String(now.getDate()).padStart(2, '0');
-                const month = String(now.getMonth() + 1).padStart(2, '0');
-                const year = now.getFullYear();
-                const weekNumber = getWeekNumber(now); 
+                const day = String(reportDate.getDate()).padStart(2, '0');
+                const month = String(reportDate.getMonth() + 1).padStart(2, '0');
+                const year = reportDate.getFullYear();
+                const weekNumber = getWeekNumber(reportDate); 
+
+                const daysOfWeek = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+                const dayOfWeek = daysOfWeek[reportDate.getDay()];
 
                 const hasDiscard = harvestData.length > 0 && harvestData.some(item => item.isDiscard);
                 const prefix = hasDiscard ? "Descarte" : "Resumo Colheita";
@@ -869,11 +909,12 @@
 
                 const canvas = await html2canvas(element, options);
                 
-                // Lógica de nome do arquivo
-                const now = new Date();
-                const dateStr = now.toLocaleDateString('pt-BR').replace(/\//g, '-');
-                const weekNum = getWeekNumber(now);
-                let weekday = now.toLocaleDateString('pt-BR', { weekday: 'long' });
+                // Lógica de nome do arquivo usando Data Selecionada
+                const reportDate = getSelectedDate();
+                const dateStr = reportDate.toLocaleDateString('pt-BR').replace(/\//g, '-');
+                const weekNum = getWeekNumber(reportDate);
+                
+                let weekday = reportDate.toLocaleDateString('pt-BR', { weekday: 'long' });
                 weekday = weekday.charAt(0).toUpperCase() + weekday.slice(1);
 
                 const hasDiscard = harvestData.length > 0 && harvestData.some(item => item.isDiscard);
@@ -883,9 +924,12 @@
                 const filename = `${prefix} - ${weekday} ${dateStr} Semana ${weekNum} - ${partnerName}.png`;
 
                 // --- TEXTO DINÂMICO DE COMPARTILHAMENTO ---
+                // Mantém saudação baseada na hora real, mas usa a data selecionada para o texto
+                const now = new Date();
                 const hours = now.getHours();
                 const greeting = hours < 12 ? "Bom dia" : (hours < 18 ? "Boa tarde" : "Boa noite");
-                const shareDate = now.toLocaleDateString('pt-BR');
+                
+                const shareDate = reportDate.toLocaleDateString('pt-BR');
                 
                 // ADICIONADO: Quebra de linha (\n) após "Pessoal!"
                 const shareText = `${greeting}, Pessoal!\nResumo da Produção - ${shareDate} - Semana ${weekNum}`;
