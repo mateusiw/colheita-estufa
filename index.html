@@ -914,6 +914,22 @@
                 const dateStr = reportDate.toLocaleDateString('pt-BR').replace(/\//g, '-');
                 const weekNum = getWeekNumber(reportDate);
                 
+                // --- INÍCIO DA INTEGRAÇÃO COM GOOGLE SHEETS ---
+                btnSpan.innerText = "A guardar dados..."; // Feedback visual adicionado
+                
+                // Monta o pacote de dados a ser enviado
+                const payloadToSheets = {
+                    date: reportDate.toLocaleDateString('pt-BR'),
+                    week: weekNum,
+                    items: harvestData
+                };
+                
+                // Dispara o envio e AGUARDA terminar antes de abrir o WhatsApp
+                await sendDataToGoogleSheets(payloadToSheets);
+                
+                btnSpan.innerText = "A preparar WhatsApp...";
+                // --- FIM DA INTEGRAÇÃO COM GOOGLE SHEETS ---
+
                 let weekday = reportDate.toLocaleDateString('pt-BR', { weekday: 'long' });
                 weekday = weekday.charAt(0).toUpperCase() + weekday.slice(1);
 
@@ -982,6 +998,32 @@
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+        }
+
+        // --- FUNÇÃO PARA ENVIAR DADOS AO GOOGLE SHEETS ---
+        async function sendDataToGoogleSheets(payload) {
+            // SUBSTITUA A URL ABAIXO PELO LINK GERADO NO APPS SCRIPT
+            const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwfJ08SvceO8EXheN0aj9YHhr8r8r9FmUrsSGC3u7UmYDpfftVUV5bn-eBIVX6mttlG/exec"; 
+            
+            if (SCRIPT_URL === "COLE_SUA_URL_DO_APPS_SCRIPT_AQUI" || !SCRIPT_URL) {
+                console.log("Integração com Sheets pulada: URL não configurada.");
+                return;
+            }
+
+            try {
+                // Usamos text/plain e no-cors para evitar bloqueios de segurança (CORS) do navegador
+                await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', 
+                    headers: {
+                        'Content-Type': 'text/plain;charset=utf-8',
+                    },
+                    body: JSON.stringify(payload)
+                });
+                console.log("Dados enviados em segundo plano para o Google Sheets!");
+            } catch (err) {
+                console.error("Erro no envio para o Google Sheets:", err);
+            }
         }
 
         // --- FUNÇÕES DE MENSAGEM MODAL ---
