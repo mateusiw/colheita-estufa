@@ -42,8 +42,8 @@
             </div>
         </div>
         <div class="flex gap-2">
-            <!-- Botão Imagem (Renomeado e Atualizado) -->
-            <button type="button" onclick="downloadImage()" class="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-lg shadow-emerald-600/20 transition-all active:scale-95 active:bg-emerald-800">
+            <!-- Botão Imagem (Modificado para chamar o Modal de Confirmação) -->
+            <button type="button" onclick="showConfirmModal()" class="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-lg shadow-emerald-600/20 transition-all active:scale-95 active:bg-emerald-800">
                 <i data-lucide="share-2" class="w-4 h-4"></i>
                 <span>Enviar Imagem para o WhatsApp</span>
             </button>
@@ -238,6 +238,35 @@
                     </div>
                 </div>
 
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE CONFIRMAÇÃO DOS DADOS (BASEADO NA IMAGEM) -->
+    <div id="confirmModal" class="fixed inset-0 bg-slate-900/40 z-50 hidden flex justify-center items-center backdrop-blur-sm transition-opacity duration-300 px-4">
+        <div class="bg-white rounded-[24px] shadow-2xl p-8 w-full max-w-[400px] transform transition-all scale-100 text-center">
+            
+            <div class="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-slate-50 border border-slate-100 mb-5">
+                <i data-lucide="help-circle" class="h-7 w-7 text-[#5c7a6b]"></i>
+            </div>
+            
+            <h3 class="text-xl font-extrabold text-[#1e293b] mb-3">Conferiu os dados?</h3>
+            
+            <p class="text-[15px] font-medium text-slate-500 mb-6 leading-relaxed">
+                Você conferiu todas as informações? Se sim, toque para enviar.
+            </p>
+            
+            <p class="text-[14px] font-bold text-[#d97706] mb-8 leading-snug">
+                Caso tenha enviado alguma informação errada, informe ao responsável para que ele possa alterar na planilha.
+            </p>
+            
+            <div class="flex flex-row gap-3 w-full">
+                <button onclick="hideConfirmModal()" class="flex-1 py-3.5 bg-slate-50 hover:bg-slate-100 text-[#475569] font-bold rounded-xl text-sm transition-colors focus:ring-4 focus:ring-slate-100">
+                    CANCELAR
+                </button>
+                <button onclick="processAndSend()" class="flex-1 py-3.5 bg-[#5A7768] hover:bg-[#486355] text-white font-bold rounded-xl text-sm transition-colors focus:ring-4 focus:ring-[#5A7768]/30 shadow-lg shadow-[#5A7768]/20">
+                    ENVIAR AGORA
+                </button>
             </div>
         </div>
     </div>
@@ -796,6 +825,128 @@
             </div>`;
         }
 
+        // --- FUNÇÕES DO MODAL DE CONFIRMAÇÃO ---
+        function showConfirmModal() {
+            if (harvestData.length === 0) {
+                showMessageModal('Atenção', 'Adicione registros primeiro.', 'error');
+                return;
+            }
+            document.getElementById('confirmModal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function hideConfirmModal() {
+            document.getElementById('confirmModal').classList.add('hidden');
+        }
+
+        // Antiga função "downloadImage" agora renomeada e acionada pelo botão "ENVIAR AGORA"
+        async function processAndSend() {
+            hideConfirmModal(); // Esconde o modal ao iniciar
+
+            const element = document.getElementById('report-card');
+            const btnSpan = document.querySelector('button[onclick="showConfirmModal()"] span');
+            const originalText = btnSpan.innerText;
+            btnSpan.innerText = "A guardar dados...";
+
+            try {
+                const options = {
+                    scale: 5, 
+                    useCORS: true, 
+                    allowTaint: true,
+                    scrollY: -window.scrollY,
+                    backgroundColor: '#ffffff', 
+                    onclone: (doc) => {
+                        const el = doc.getElementById('report-card');
+                        const content = doc.getElementById('reportContent');
+                        
+                        if (el) { 
+                            el.style.width = '450px'; 
+                            el.style.maxWidth = '450px';
+                            el.style.margin = '0'; 
+                            el.style.boxShadow = 'none';
+                            el.style.borderRadius = '0';
+                            el.style.border = 'none';
+                        }
+                        if (content) { 
+                            content.style.height = 'auto'; 
+                            content.style.overflow = 'visible'; 
+                            content.style.maxHeight = 'none';
+                        }
+                    }
+                };
+
+                const canvas = await html2canvas(element, options);
+                
+                // Lógica de nome do arquivo usando Data Selecionada
+                const reportDate = getSelectedDate();
+                const dateStr = reportDate.toLocaleDateString('pt-BR').replace(/\//g, '-');
+                const weekNum = getWeekNumber(reportDate);
+                
+                // --- INÍCIO DA INTEGRAÇÃO COM GOOGLE SHEETS ---
+                const payloadToSheets = {
+                    date: reportDate.toLocaleDateString('pt-BR'),
+                    week: weekNum,
+                    items: harvestData
+                };
+                
+                // Dispara o envio e AGUARDA terminar antes de abrir o WhatsApp
+                await sendDataToGoogleSheets(payloadToSheets);
+                btnSpan.innerText = "A preparar WhatsApp...";
+                // --- FIM DA INTEGRAÇÃO COM GOOGLE SHEETS ---
+
+                let weekday = reportDate.toLocaleDateString('pt-BR', { weekday: 'long' });
+                weekday = weekday.charAt(0).toUpperCase() + weekday.slice(1);
+
+                const hasDiscard = harvestData.length > 0 && harvestData.some(item => item.isDiscard);
+                const prefix = hasDiscard ? "Descarte" : "Resumo Colheita";
+                const partnerName = "SPG SEDE";
+
+                const filename = `${prefix} - ${weekday} ${dateStr} Semana ${weekNum} - ${partnerName}.png`;
+
+                // --- TEXTO DINÂMICO DE COMPARTILHAMENTO ---
+                const now = new Date();
+                const hours = now.getHours();
+                const greeting = hours < 12 ? "Bom dia" : (hours < 18 ? "Boa tarde" : "Boa noite");
+                const shareDate = reportDate.toLocaleDateString('pt-BR');
+                const shareText = `${greeting}, Pessoal!\nResumo da Produção - ${shareDate} - Semana ${weekNum}`;
+
+                // Tenta compartilhar nativamente (Mobile)
+                canvas.toBlob(async (blob) => {
+                    const file = new File([blob], filename, { type: 'image/png' });
+
+                    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                        try {
+                            await navigator.share({
+                                files: [file],
+                                title: filename,
+                                text: shareText 
+                            });
+                        } catch (err) {
+                            if (err.name !== 'AbortError') {
+                                console.error('Erro ao compartilhar:', err);
+                                downloadFile(canvas.toDataURL('image/png'), filename);
+                            }
+                        }
+                    } else {
+                        // Fallback Desktop
+                        downloadFile(canvas.toDataURL('image/png'), filename);
+                        showMessageModal('Imagem Salva', 'A imagem foi baixada. Abrindo WhatsApp...', 'success');
+                        setTimeout(() => {
+                             const encodedText = encodeURIComponent(shareText);
+                             window.open(`https://web.whatsapp.com/send?text=${encodedText}`, '_blank');
+                        }, 2000);
+                    }
+                }, 'image/png');
+
+            } catch (err) { 
+                console.error("Erro ao gerar Imagem:", err);
+                showMessageModal('Erro', 'Falha ao gerar imagem: ' + err.message, 'error');
+            } 
+            finally { 
+                btnSpan.innerText = originalText; 
+            }
+        }
+
         async function downloadPDF() {
             const { jsPDF } = window.jspdf;
             const element = document.getElementById('report-card');
@@ -869,128 +1020,6 @@
             }
         }
 
-        async function downloadImage() {
-            const element = document.getElementById('report-card');
-            const btnSpan = document.querySelector('button[onclick="downloadImage()"] span');
-            const originalText = btnSpan.innerText;
-            btnSpan.innerText = "Gerando...";
-
-            try {
-                if (harvestData.length === 0) {
-                    showMessageModal('Atenção', 'Adicione registros primeiro.', 'error');
-                    return;
-                }
-
-                const options = {
-                    scale: 5, 
-                    useCORS: true, 
-                    allowTaint: true,
-                    scrollY: -window.scrollY,
-                    backgroundColor: '#ffffff', 
-                    onclone: (doc) => {
-                        const el = doc.getElementById('report-card');
-                        const content = doc.getElementById('reportContent');
-                        
-                        if (el) { 
-                            el.style.width = '450px'; 
-                            el.style.maxWidth = '450px';
-                            el.style.margin = '0'; 
-                            el.style.boxShadow = 'none';
-                            el.style.borderRadius = '0';
-                            el.style.border = 'none';
-                        }
-                        if (content) { 
-                            content.style.height = 'auto'; 
-                            content.style.overflow = 'visible'; 
-                            content.style.maxHeight = 'none';
-                        }
-                    }
-                };
-
-                const canvas = await html2canvas(element, options);
-                
-                // Lógica de nome do arquivo usando Data Selecionada
-                const reportDate = getSelectedDate();
-                const dateStr = reportDate.toLocaleDateString('pt-BR').replace(/\//g, '-');
-                const weekNum = getWeekNumber(reportDate);
-                
-                // --- INÍCIO DA INTEGRAÇÃO COM GOOGLE SHEETS ---
-                btnSpan.innerText = "A guardar dados..."; // Feedback visual adicionado
-                
-                // Monta o pacote de dados a ser enviado
-                const payloadToSheets = {
-                    date: reportDate.toLocaleDateString('pt-BR'),
-                    week: weekNum,
-                    items: harvestData
-                };
-                
-                // Dispara o envio e AGUARDA terminar antes de abrir o WhatsApp
-                await sendDataToGoogleSheets(payloadToSheets);
-                
-                btnSpan.innerText = "A preparar WhatsApp...";
-                // --- FIM DA INTEGRAÇÃO COM GOOGLE SHEETS ---
-
-                let weekday = reportDate.toLocaleDateString('pt-BR', { weekday: 'long' });
-                weekday = weekday.charAt(0).toUpperCase() + weekday.slice(1);
-
-                const hasDiscard = harvestData.length > 0 && harvestData.some(item => item.isDiscard);
-                const prefix = hasDiscard ? "Descarte" : "Resumo Colheita";
-                const partnerName = "SPG SEDE";
-
-                const filename = `${prefix} - ${weekday} ${dateStr} Semana ${weekNum} - ${partnerName}.png`;
-
-                // --- TEXTO DINÂMICO DE COMPARTILHAMENTO ---
-                // Mantém saudação baseada na hora real, mas usa a data selecionada para o texto
-                const now = new Date();
-                const hours = now.getHours();
-                const greeting = hours < 12 ? "Bom dia" : (hours < 18 ? "Boa tarde" : "Boa noite");
-                
-                const shareDate = reportDate.toLocaleDateString('pt-BR');
-                
-                // ADICIONADO: Quebra de linha (\n) após "Pessoal!"
-                const shareText = `${greeting}, Pessoal!\nResumo da Produção - ${shareDate} - Semana ${weekNum}`;
-
-                // Tenta compartilhar nativamente (Mobile)
-                canvas.toBlob(async (blob) => {
-                    const file = new File([blob], filename, { type: 'image/png' });
-
-                    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-                        try {
-                            await navigator.share({
-                                files: [file],
-                                title: filename,
-                                text: shareText // Texto atualizado com Semana
-                            });
-                        } catch (err) {
-                            if (err.name !== 'AbortError') {
-                                console.error('Erro ao compartilhar:', err);
-                                // Fallback se falhar
-                                downloadFile(canvas.toDataURL('image/png'), filename);
-                            }
-                        }
-                    } else {
-                        // Fallback Desktop
-                        downloadFile(canvas.toDataURL('image/png'), filename);
-                        
-                        // Abre WhatsApp Web como fallback visual
-                        showMessageModal('Imagem Salva', 'A imagem foi baixada. Abrindo WhatsApp...', 'success');
-                        setTimeout(() => {
-                             // Tenta abrir com o texto pré-definido também na URL
-                             const encodedText = encodeURIComponent(shareText);
-                             window.open(`https://web.whatsapp.com/send?text=${encodedText}`, '_blank');
-                        }, 2000);
-                    }
-                }, 'image/png');
-
-            } catch (err) { 
-                console.error("Erro ao gerar Imagem:", err);
-                showMessageModal('Erro', 'Falha ao gerar imagem: ' + err.message, 'error');
-            } 
-            finally { 
-                btnSpan.innerText = originalText; 
-            }
-        }
-
         function downloadFile(uri, name) {
             const link = document.createElement('a');
             link.href = uri;
@@ -1002,7 +1031,6 @@
 
         // --- FUNÇÃO PARA ENVIAR DADOS AO GOOGLE SHEETS ---
         async function sendDataToGoogleSheets(payload) {
-            // SUBSTITUA A URL ABAIXO PELO LINK GERADO NO APPS SCRIPT
             const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwfJ08SvceO8EXheN0aj9YHhr8r8r9FmUrsSGC3u7UmYDpfftVUV5bn-eBIVX6mttlG/exec"; 
             
             if (SCRIPT_URL === "COLE_SUA_URL_DO_APPS_SCRIPT_AQUI" || !SCRIPT_URL) {
@@ -1011,7 +1039,6 @@
             }
 
             try {
-                // Usamos text/plain e no-cors para evitar bloqueios de segurança (CORS) do navegador
                 await fetch(SCRIPT_URL, {
                     method: 'POST',
                     mode: 'no-cors', 
