@@ -889,8 +889,8 @@
                     items: harvestData
                 };
                 
-                // Dispara o envio e AGUARDA terminar antes de abrir o WhatsApp
-                await sendDataToGoogleSheets(payloadToSheets);
+                // Dispara o envio EM SEGUNDO PLANO (sem await) para não perder o gesto do usuário
+                sendDataToGoogleSheets(payloadToSheets);
                 btnSpan.innerText = "A preparar WhatsApp...";
                 // --- FIM DA INTEGRAÇÃO COM GOOGLE SHEETS ---
 
@@ -914,6 +914,34 @@
                 canvas.toBlob(async (blob) => {
                     const file = new File([blob], filename, { type: 'image/png' });
 
+                    // Função de Fallback robusta (evita bloqueio de popup)
+                    const fallbackWhatsApp = () => {
+                        downloadFile(canvas.toDataURL('image/png'), filename);
+                        const encodedText = encodeURIComponent(shareText);
+                        const whatsappUrl = `https://api.whatsapp.com/send?text=${encodedText}`;
+
+                        const modal = document.getElementById('messageModal');
+                        const iconContainer = document.getElementById('msgIconContainer');
+                        const titleEl = document.getElementById('msgTitle');
+                        const textEl = document.getElementById('msgText');
+
+                        iconContainer.className = "mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4";
+                        iconContainer.innerHTML = '<i data-lucide="check-circle" class="h-6 w-6 text-green-600"></i>';
+
+                        titleEl.innerText = 'Imagem Salva!';
+                        textEl.innerHTML = `
+                            <div class="flex flex-col gap-3 mt-2">
+                                <span class="text-sm text-slate-500 mb-2">A imagem foi baixada. Clique no botão abaixo para enviar no WhatsApp:</span>
+                                <a href="${whatsappUrl}" target="_blank" onclick="hideMessageModal()" class="flex items-center justify-center gap-2 px-4 py-3 bg-[#25D366] hover:bg-[#1DA851] text-white font-bold rounded-xl text-sm transition-all shadow-lg shadow-[#25D366]/20">
+                                    <i data-lucide="message-circle" class="w-5 h-5"></i> Abrir WhatsApp
+                                </a>
+                            </div>
+                        `;
+
+                        modal.classList.remove('hidden');
+                        lucide.createIcons();
+                    };
+
                     if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
                         try {
                             await navigator.share({
@@ -924,17 +952,13 @@
                         } catch (err) {
                             if (err.name !== 'AbortError') {
                                 console.error('Erro ao compartilhar:', err);
-                                downloadFile(canvas.toDataURL('image/png'), filename);
+                                // Dispara o fallback caso a permissão (gesture) tenha sido perdida
+                                fallbackWhatsApp();
                             }
                         }
                     } else {
-                        // Fallback Desktop
-                        downloadFile(canvas.toDataURL('image/png'), filename);
-                        showMessageModal('Imagem Salva', 'A imagem foi baixada. Abrindo WhatsApp...', 'success');
-                        setTimeout(() => {
-                             const encodedText = encodeURIComponent(shareText);
-                             window.open(`https://web.whatsapp.com/send?text=${encodedText}`, '_blank');
-                        }, 2000);
+                        // Fallback Desktop ou navegadores incompatíveis
+                        fallbackWhatsApp();
                     }
                 }, 'image/png');
 
@@ -1061,7 +1085,7 @@
             const textEl = document.getElementById('msgText');
 
             titleEl.innerText = title;
-            textEl.innerText = message;
+            textEl.innerHTML = message;
 
             if (type === 'error') {
                 iconContainer.className = "mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4";
