@@ -18,7 +18,7 @@
     <!-- Bibliotecas Externas -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.13/html-to-image.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     
     <style>
@@ -63,14 +63,14 @@
 
             <!-- 1. DATA DA COLHEITA -->
             <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col gap-2">
-                <label class="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
+                <label id="reportDateLabel" class="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
                     <i data-lucide="calendar" class="w-4 h-4 text-emerald-600"></i> Data da Colheita
                 </label>
                 <input type="date" id="reportDate" onchange="updateDynamicTitle()" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none text-slate-700 font-bold uppercase">
             </div>
             
             <!-- 2. PARÂMETROS DO TURNO -->
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col gap-2">
+            <div id="turnParametersCard" class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col gap-2">
                 <h2 class="text-sm font-bold text-slate-700 flex items-center gap-2 border-b border-slate-100 pb-2 mb-1">
                     <i data-lucide="settings" class="w-4 h-4 text-emerald-600"></i> Parâmetros do Turno
                 </h2>
@@ -222,8 +222,8 @@
         </div>
 
         <!-- PREVIEW -->
-        <div class="w-full lg:w-2/3 flex flex-col bg-slate-200/50 p-4 rounded-3xl border border-slate-300/50 min-h-[calc(100vh-6rem)]">
-            <div id="report-card" class="w-full flex-1 flex flex-col bg-white rounded-none shadow-2xl overflow-hidden border border-slate-100 relative">
+        <div class="w-full lg:w-2/3 flex flex-col items-center p-0 rounded-3xl border border-slate-300/50 lg:sticky lg:top-24 lg:self-start">
+            <div id="report-card" class="w-full max-w-[440px] flex flex-col bg-white rounded-none shadow-2xl overflow-hidden border border-slate-100 relative">
                 
                 <!-- Cabeçalho -->
                 <div id="reportHeaderBg" class="bg-gradient-to-br from-emerald-600 to-emerald-800 p-6 text-white relative overflow-hidden flex flex-col justify-start shrink-0 gap-3 transition-colors duration-500">
@@ -242,7 +242,7 @@
                 </div>
 
                 <!-- Conteúdo -->
-                <div id="reportContent" class="divide-y divide-slate-50 flex-1 overflow-y-auto">
+                <div id="reportContent" class="divide-y divide-slate-50 overflow-visible">
                     <div class="p-8 text-center text-slate-400 text-xs italic leading-relaxed h-full flex items-center justify-center">Adicione blocos no formulário ao lado.</div>
                 </div>
 
@@ -489,12 +489,16 @@
             const formTitle = document.getElementById('formTitle');
             const submitBtn = document.getElementById('submitBtn');
             const listTitle = document.getElementById('listTitle');
+            const turnParametersCard = document.getElementById('turnParametersCard');
+            const reportDateLabel = document.getElementById('reportDateLabel');
 
             if (tab === 'colheita') {
                 tabColheita.className = "flex-1 flex items-center justify-center gap-2 py-2.5 bg-white rounded-lg shadow text-sm font-bold text-emerald-700 transition-all";
                 tabDescarte.className = "flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-bold text-slate-500 hover:text-[#688679] transition-all";
                 colheitaOnly.forEach(el => el.classList.remove('hidden'));
                 descarteOnly.forEach(el => el.classList.add('hidden'));
+                if (turnParametersCard) turnParametersCard.classList.remove('hidden');
+                if (reportDateLabel) reportDateLabel.innerHTML = '<i data-lucide="calendar" class="w-4 h-4 text-emerald-600"></i> Data da Colheita';
                 
                 if (listTitle) listTitle.innerText = "Registros de Colheita";
 
@@ -508,6 +512,8 @@
                 tabColheita.className = "flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-bold text-slate-500 hover:text-emerald-600 transition-all";
                 colheitaOnly.forEach(el => el.classList.add('hidden'));
                 descarteOnly.forEach(el => el.classList.remove('hidden'));
+                if (turnParametersCard) turnParametersCard.classList.add('hidden');
+                if (reportDateLabel) reportDateLabel.innerHTML = '<i data-lucide="calendar" class="w-4 h-4 text-emerald-600"></i> Data do Descarte';
                 
                 if (listTitle) listTitle.innerText = "Registros de Descarte";
 
@@ -767,7 +773,7 @@
                             ${createStatItem('scale', displayWeight, 'PESO (KG)', 'descarte')}
                             <div class="col-span-2 mt-1">
                                 <span class="text-[10px] font-bold text-[#688679] block uppercase mb-1">Motivo do Descarte:</span>
-                                <p class="text-xs text-[#5a7469] font-semibold bg-[#688679]/10 p-2 rounded-lg border border-[#688679]/20">${item.discardReason || 'Não informado'}</p>
+                                <p class="text-xs text-[#5a7469] font-semibold bg-slate-100 p-2 rounded-lg border border-slate-300">${item.discardReason || 'Não informado'}</p>
                             </div>
                         </div>`;
                     } else {
@@ -846,6 +852,14 @@
                 
             const footer = document.getElementById('operationalFooter');
             if (footer) {
+                if (currentRecordType === 'descarte') {
+                    footer.classList.add('hidden');
+                    footer.innerHTML = '';
+                    lucide.createIcons();
+                    return;
+                }
+
+                footer.classList.remove('hidden');
                 const crewValue = document.getElementById('crewCount').value;
                 const crew = crewValue ? (parseInt(crewValue) === 1 ? `${crewValue} Colaborador` : `${crewValue} Colaboradores`) : '-';
                 
@@ -919,52 +933,215 @@
             document.getElementById('confirmModal').classList.add('hidden');
         }
 
+        function createExportNode(options = {}) {
+            const hideExternalImages = options.hideExternalImages !== false;
+            const source = document.getElementById('report-card');
+            if (!source) throw new Error('Elemento do relatório não encontrado.');
+            const clone = source.cloneNode(true);
+            const sourceRect = source.getBoundingClientRect();
+            const sourceHeight = Math.max(source.scrollHeight, source.offsetHeight, Math.ceil(sourceRect.height));
+
+            clone.style.width = '440px';
+            clone.style.maxWidth = '440px';
+            clone.style.height = `${sourceHeight}px`;
+            clone.style.minHeight = `${sourceHeight}px`;
+            clone.style.margin = '0';
+            clone.style.boxShadow = 'none';
+            clone.style.borderRadius = '0';
+            clone.style.border = 'none';
+            clone.style.display = 'block';
+            clone.style.flex = 'none';
+
+            const content = clone.querySelector('#reportContent');
+            if (content) {
+                content.style.height = 'auto';
+                content.style.minHeight = '0';
+                content.style.overflow = 'visible';
+                content.style.maxHeight = 'none';
+                content.style.flex = 'none';
+            }
+
+            if (hideExternalImages) {
+                // Evita tela branca em contexto file:// quando imagens externas bloqueiam renderização.
+                const externalImages = clone.querySelectorAll('img');
+                externalImages.forEach((img) => {
+                    const src = img.getAttribute('src') || '';
+                    if (/^https?:\/\//i.test(src)) {
+                        img.style.visibility = 'hidden';
+                    }
+                });
+            }
+
+            clone.style.position = 'fixed';
+            clone.style.left = '-99999px';
+            clone.style.top = '0';
+            clone.style.zIndex = '-1';
+            document.body.appendChild(clone);
+
+            return clone;
+        }
+
+        async function runImageDiagnostics() {
+            const element = document.getElementById('report-card');
+            if (!element) {
+                showMessageModal('Erro', 'Elemento do relatório não encontrado.', 'error');
+                return;
+            }
+
+            const attempts = [
+                { name: 'Original (sem clone)', mode: 'original' },
+                { name: 'Clone com imagens externas', mode: 'clone-with-images' },
+                { name: 'Clone sem imagens externas', mode: 'clone-without-images' }
+            ];
+
+            const results = [];
+
+            for (const attempt of attempts) {
+                let targetNode = null;
+                try {
+                    if (attempt.mode === 'original') {
+                        targetNode = element;
+                    } else if (attempt.mode === 'clone-with-images') {
+                        targetNode = createExportNode({ hideExternalImages: false });
+                    } else {
+                        targetNode = createExportNode({ hideExternalImages: true });
+                    }
+
+                    const blob = await htmlToImage.toBlob(targetNode, {
+                        pixelRatio: 2,
+                        cacheBust: true,
+                        backgroundColor: '#ffffff'
+                    });
+                    if (!blob || blob.size === 0) throw new Error('Blob vazio.');
+                    const dataUrl = URL.createObjectURL(blob);
+                    const fileLabel = attempt.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+                    downloadFile(dataUrl, `diag-${fileLabel}.png`);
+                    setTimeout(() => URL.revokeObjectURL(dataUrl), 10000);
+                    results.push(`OK: ${attempt.name}`);
+                } catch (err) {
+                    results.push(`FALHOU: ${attempt.name} -> ${err.message}`);
+                } finally {
+                    if (targetNode && targetNode !== element && targetNode.parentNode) {
+                        targetNode.parentNode.removeChild(targetNode);
+                    }
+                }
+            }
+
+            showMessageModal('Diagnóstico de Imagem', results.join('<br>'), 'success');
+        }
+
+        async function renderReportImageBlob() {
+            const element = document.getElementById('report-card');
+            if (!element) throw new Error('Elemento do relatório não encontrado.');
+
+            const attempts = [
+                { name: 'Original sem ocultacao de imagens externas', hideExternalImages: false },
+                { name: 'Original com ocultacao de imagens externas', hideExternalImages: true }
+            ];
+
+            const errors = [];
+
+            for (const attempt of attempts) {
+                const source = element;
+                const content = source.querySelector('#reportContent');
+                const sourceStyle = source.getAttribute('style');
+                const contentStyle = content ? content.getAttribute('style') : null;
+                const imageStyleCache = [];
+                try {
+                    const sourceRect = source.getBoundingClientRect();
+                    const sourceHeight = Math.max(source.scrollHeight, source.offsetHeight, Math.ceil(sourceRect.height));
+
+                    source.style.width = '440px';
+                    source.style.maxWidth = '440px';
+                    source.style.height = `${sourceHeight}px`;
+                    source.style.minHeight = `${sourceHeight}px`;
+                    source.style.margin = '0';
+                    source.style.boxShadow = 'none';
+                    source.style.borderRadius = '0';
+                    source.style.border = 'none';
+                    source.style.display = 'block';
+                    source.style.flex = 'none';
+
+                    if (content) {
+                        content.style.height = 'auto';
+                        content.style.minHeight = '0';
+                        content.style.overflow = 'visible';
+                        content.style.maxHeight = 'none';
+                        content.style.flex = 'none';
+                    }
+
+                    if (attempt.hideExternalImages) {
+                        const externalImages = source.querySelectorAll('img');
+                        externalImages.forEach((img) => {
+                            const src = img.getAttribute('src') || '';
+                            if (/^https?:\/\//i.test(src)) {
+                                imageStyleCache.push({ img, visibility: img.style.visibility });
+                                img.style.visibility = 'hidden';
+                            }
+                        });
+                    }
+
+                    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+                    const blob = await htmlToImage.toBlob(source, {
+                        pixelRatio: 3,
+                        cacheBust: true,
+                        backgroundColor: '#ffffff'
+                    });
+
+                    if (!blob || blob.size === 0) {
+                        throw new Error('Blob vazio.');
+                    }
+
+                    return { blob, mode: attempt.name };
+                } catch (err) {
+                    errors.push(`${attempt.name}: ${err.message}`);
+                } finally {
+                    imageStyleCache.forEach(({ img, visibility }) => {
+                        img.style.visibility = visibility || '';
+                    });
+
+                    if (content) {
+                        if (contentStyle === null) {
+                            content.removeAttribute('style');
+                        } else {
+                            content.setAttribute('style', contentStyle);
+                        }
+                    }
+
+                    if (sourceStyle === null) {
+                        source.removeAttribute('style');
+                    } else {
+                        source.setAttribute('style', sourceStyle);
+                    }
+                }
+            }
+
+            throw new Error(`Nenhuma tentativa de renderização funcionou. ${errors.join(' | ')}`);
+        }
+
         async function processAndSend() {
             if (isProcessingShare) return;
             isProcessingShare = true;
             
             hideConfirmModal();
 
-            const element = document.getElementById('report-card');
             const btnSpan = document.querySelector('button[onclick="showConfirmModal()"] span');
             const originalText = btnSpan.innerText;
             btnSpan.innerText = "Gerando Imagem..."; 
 
             try {
+                const element = document.getElementById('report-card');
+                if (!element) throw new Error('Elemento do relatório não encontrado.');
                 const images = element.querySelectorAll('img');
                 await Promise.all(Array.from(images).map(img => { 
                     if (img.complete) return Promise.resolve(); 
                     return new Promise(resolve => { img.onload = resolve; img.onerror = resolve; }); 
                 }));
 
-                const options = {
-                    scale: 5, 
-                    useCORS: true, 
-                    allowTaint: true,
-                    scrollY: -window.scrollY,
-                    backgroundColor: '#ffffff', 
-                    onclone: (doc) => {
-                        const el = doc.getElementById('report-card');
-                        const content = doc.getElementById('reportContent');
-                        
-                        if (el) { 
-                            el.style.width = '450px'; 
-                            el.style.maxWidth = '450px';
-                            el.style.margin = '0'; 
-                            el.style.boxShadow = 'none';
-                            el.style.borderRadius = '0';
-                            el.style.border = 'none';
-                        }
-                        if (content) { 
-                            content.style.height = 'auto'; 
-                            content.style.overflow = 'visible'; 
-                            content.style.maxHeight = 'none';
-                        }
-                    }
-                };
-
-                const canvas = await html2canvas(element, options);
-                
+                const renderedImage = await renderReportImageBlob();
+                const blob = renderedImage.blob;
+                 
                 const reportDate = getSelectedDate();
                 const dateStr = reportDate.toLocaleDateString('pt-BR').replace(/\//g, '-');
                 const weekNum = getWeekNumber(reportDate);
@@ -992,8 +1169,8 @@
                 const typeLabel = currentRecordType === 'descarte' ? 'Descarte' : 'Produção';
                 const shareText = `${greeting}, Pessoal!\nResumo de ${typeLabel} - ${shareDate} - Semana ${weekNum}`;
 
-                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
                 const file = new File([blob], filename, { type: 'image/png' });
+                const blobUrl = URL.createObjectURL(blob);
 
                 if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
                     try {
@@ -1006,18 +1183,19 @@
                         console.log("Compartilhamento cancelado ou falhou:", shareErr);
                         // Fallback adicionado para garantir que a imagem não se perca se o navegador bloquear o compartilhamento
                         if (shareErr.name !== 'AbortError') {
-                            downloadFile(canvas.toDataURL('image/png'), filename);
+                            downloadFile(blobUrl, filename);
                             setTimeout(() => { 
                                 window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank'); 
                             }, 500);
                         }
                     }
                 } else {
-                    downloadFile(canvas.toDataURL('image/png'), filename);
+                    downloadFile(blobUrl, filename);
                     setTimeout(() => { 
                         window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank'); 
                     }, 500);
                 }
+                setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
 
             } catch (err) { 
                 console.error("Erro ao gerar Imagem:", err);
@@ -1031,41 +1209,28 @@
 
         async function downloadPDF() {
             const { jsPDF } = window.jspdf;
-            const element = document.getElementById('report-card');
             const originalText = document.querySelector('button[onclick="downloadPDF()"] span').innerText;
             document.querySelector('button[onclick="downloadPDF()"] span').innerText = "Gerando PDF...";
             
             try {
-                const options = {
-                    scale: 3, 
-                    useCORS: true,
-                    allowTaint: true,
-                    scrollY: -window.scrollY,
-                    backgroundColor: '#ffffff', 
-                    onclone: (doc) => {
-                        const el = doc.getElementById('report-card');
-                        const content = doc.getElementById('reportContent');
-                        
-                        if (el) { 
-                            el.style.width = '450px'; 
-                            el.style.maxWidth = '450px';
-                            el.style.margin = '0'; 
-                            el.style.boxShadow = 'none';
-                            el.style.borderRadius = '0';
-                            el.style.border = 'none';
-                        }
-                        if (content) { 
-                            content.style.height = 'auto'; 
-                            content.style.overflow = 'visible'; 
-                            content.style.maxHeight = 'none';
-                        }
+                const exportNode = createExportNode();
+                let imgData;
+                try {
+                    imgData = await htmlToImage.toPng(exportNode, {
+                        pixelRatio: 3,
+                        cacheBust: true,
+                        backgroundColor: '#ffffff'
+                    });
+                } finally {
+                    if (exportNode.parentNode) {
+                        exportNode.parentNode.removeChild(exportNode);
                     }
-                };
-
-                const canvas = await html2canvas(element, options);
+                }
                 
-                const imgWidth = 450; 
-                const pageHeight = (canvas.height * imgWidth) / canvas.width; 
+                const imgWidth = 440;
+                const source = document.getElementById('report-card');
+                const sourceRect = source.getBoundingClientRect();
+                const pageHeight = Math.max(source.scrollHeight, source.offsetHeight, Math.ceil(sourceRect.height));
 
                 const pdf = new jsPDF({
                     orientation: 'p',
@@ -1074,7 +1239,6 @@
                     hotfixes: ['px_scaling']
                 });
 
-                const imgData = canvas.toDataURL('image/png'); 
                 pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, pageHeight);
                 
                 const reportDate = getSelectedDate();
