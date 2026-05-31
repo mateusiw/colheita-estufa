@@ -16,6 +16,9 @@
     <meta name="apple-mobile-web-app-title" content="SPG SEDE">
     
     <!-- Bibliotecas Externas -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.13/html-to-image.min.js"></script>
@@ -25,6 +28,8 @@
         html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; -webkit-tap-highlight-color: transparent; }
         #report-card.export-mode #summaryStats { padding-bottom: 10px; }
+        #report-card.export-mode,
+        #report-card.export-mode * { font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         input, select, textarea { line-height: 1.5; }
@@ -1078,6 +1083,9 @@
                         });
                     }
 
+                    if (document.fonts && document.fonts.ready) {
+                        await document.fonts.ready;
+                    }
                     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
                     const blob = await htmlToImage.toBlob(source, {
