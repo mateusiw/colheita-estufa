@@ -6,9 +6,9 @@
     <title>Resumo de Colheita SPG Estufa</title>
     
     <!-- Configurações PWA -->
-    <link rel="icon" type="image/png" href="https://i.imgur.com/wEozr34.png">
-    <link rel="apple-touch-icon" href="https://i.imgur.com/wEozr34.png">
-    <link rel="manifest" href='data:application/manifest+json,{"name":"SPG Estufa","short_name":"SPG Estufa","start_url":".","display":"standalone","background_color":"#ffffff","theme_color":"#ffffff","icons":[{"src":"https://i.imgur.com/wEozr34.png","sizes":"192x192","type":"image/png"},{"src":"https://i.imgur.com/wEozr34.png","sizes":"512x512","type":"image/png"}]}'>
+    <link rel="icon" type="image/png" id="siteFavicon" href="https://i.imgur.com/oqQbsNi.png">
+    <link rel="apple-touch-icon" id="siteAppleTouchIcon" href="https://i.imgur.com/oqQbsNi.png">
+    <link rel="manifest" id="siteManifest" href="manifest.json">
     
     <meta name="theme-color" content="#ffffff">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -42,13 +42,18 @@
     <!-- Navbar -->
     <div class="bg-white border-b border-slate-200 px-4 py-3 flex justify-between items-center shadow-sm sticky top-0 z-40">
         <div class="flex items-center gap-3">
-            <img src="https://i.imgur.com/wEozr34.png" alt="Logo SPG" class="w-8 h-8 rounded-lg shadow-sm border border-slate-100">
+            <img src="https://i.imgur.com/oqQbsNi.png" alt="Logo SPG" class="w-8 h-8 rounded-lg shadow-sm border border-slate-100">
             <div>
                 <h1 class="text-sm font-bold text-slate-800 leading-tight">SPG Estufa</h1>
                 <p class="text-[10px] text-slate-500 font-medium">Resumo de Colheita SPG Estufa</p>
             </div>
         </div>
         <div class="flex gap-2">
+            <!-- Botão Instalar PWA -->
+            <button id="btnInstalarApp" onclick="instalarApp()" class="hidden items-center gap-2 px-3 py-2 bg-slate-700 hover:bg-slate-800 text-white rounded-lg text-xs font-bold shadow transition-all active:scale-95">
+                <i data-lucide="download" class="w-4 h-4"></i>
+                <span class="hidden sm:inline">Instalar App</span>
+            </button>
             <!-- Botão Imagem -->
             <button type="button" onclick="showConfirmModal()" class="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-lg shadow-emerald-600/20 transition-all active:scale-95 active:bg-emerald-800">
                 <i data-lucide="share-2" class="w-4 h-4"></i>
@@ -357,6 +362,43 @@
         let _proximosSetores = [];
 
         lucide.createIcons();
+
+        // --- PWA: BRAND ASSETS ---
+        function getBrandLogoUri() {
+            return 'https://i.imgur.com/oqQbsNi.png';
+        }
+
+        function applyBrandAssets() {
+            const logoUri = getBrandLogoUri();
+
+            const favicon = document.getElementById('siteFavicon');
+            if (favicon) favicon.href = logoUri;
+
+            const appleTouchIcon = document.getElementById('siteAppleTouchIcon');
+            if (appleTouchIcon) appleTouchIcon.href = logoUri;
+
+            const manifestLink = document.getElementById('siteManifest');
+            if (manifestLink) {
+                const manifest = {
+                    name: 'SPG Estufa - Colheita',
+                    short_name: 'SPG Estufa',
+                    description: 'Gerenciamento de colheita e descarte - SPG Estufa',
+                    start_url: './index.html',
+                    scope: './',
+                    display: 'standalone',
+                    orientation: 'portrait',
+                    background_color: '#ffffff',
+                    theme_color: '#1a5c3e',
+                    icons: [
+                        { src: logoUri, sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+                        { src: logoUri, sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+                    ]
+                };
+                manifestLink.href = `data:application/manifest+json,${encodeURIComponent(JSON.stringify(manifest))}`;
+            }
+        }
+
+        applyBrandAssets();
 
         // --- INICIALIZAÇÃO CORRETA DO FORMULÁRIO ---
         setTimeout(async () => {
@@ -1643,6 +1685,48 @@
 
         function hideMessageModal() {
             document.getElementById('messageModal').classList.add('hidden');
+        }
+
+        // --- PWA: SERVICE WORKER + INSTALAÇÃO ---
+        let _deferredInstallPrompt = null;
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(() => {});
+            });
+        }
+
+        window.addEventListener('beforeinstallprompt', e => {
+            e.preventDefault();
+            _deferredInstallPrompt = e;
+            const btn = document.getElementById('btnInstalarApp');
+            if (btn) btn.classList.replace('hidden', 'flex');
+            lucide.createIcons();
+        });
+
+        window.addEventListener('appinstalled', () => {
+            _deferredInstallPrompt = null;
+            const btn = document.getElementById('btnInstalarApp');
+            if (btn) btn.classList.replace('flex', 'hidden');
+        });
+
+        async function instalarApp() {
+            if (!_deferredInstallPrompt) {
+                // iOS: não tem beforeinstallprompt, orienta o usuário
+                showMessageModal(
+                    'Instalar no iPhone/iPad',
+                    'Toque em <b>Compartilhar</b> <span style="font-size:16px">⎙</span> e depois em <b>"Adicionar à Tela de Início"</b> para instalar o app.',
+                    'info'
+                );
+                return;
+            }
+            _deferredInstallPrompt.prompt();
+            const { outcome } = await _deferredInstallPrompt.userChoice;
+            if (outcome === 'accepted') {
+                _deferredInstallPrompt = null;
+                const btn = document.getElementById('btnInstalarApp');
+                if (btn) btn.classList.replace('flex', 'hidden');
+            }
         }
     </script>
 </body>
