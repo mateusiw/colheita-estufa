@@ -1327,43 +1327,47 @@
             const element = document.getElementById('report-card');
             if (!element) throw new Error('Elemento do relatório não encontrado.');
 
-            // Clona o card off-screen a 720px fixos — desvinculado do viewport do celular
-            const clone = element.cloneNode(true);
-            clone.classList.add('export-mode');
-            clone.style.cssText = [
-                'position:fixed',
-                'top:0',
-                'left:-9999px',
-                'width:720px',
-                'max-width:720px',
-                'margin:0',
-                'box-shadow:none',
-                'border-radius:0',
-                'border:none',
-                'display:block',
-                'flex:none',
-                'z-index:-1'
-            ].join(';');
+            const content  = element.querySelector('#reportContent');
+            const parent   = element.parentElement;
 
-            const cloneContent = clone.querySelector('#reportContent');
-            if (cloneContent) {
-                cloneContent.style.cssText = 'height:auto;min-height:0;overflow:visible;max-height:none;flex:none;';
-            }
-
-            // Oculta imagens externas (evita tela branca em file://)
-            clone.querySelectorAll('img').forEach(img => {
-                if (/^https?:\/\//i.test(img.getAttribute('src') || '')) {
-                    img.style.visibility = 'hidden';
-                }
-            });
-
-            document.body.appendChild(clone);
+            // Salva estilos originais
+            const savedEl      = element.getAttribute('style');
+            const savedContent = content  ? content.getAttribute('style')  : null;
+            const savedParent  = parent   ? parent.getAttribute('style')   : null;
 
             try {
-                if (document.fonts && document.fonts.ready) await document.fonts.ready;
-                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                element.classList.add('export-mode');
 
-                const blob = await htmlToImage.toBlob(clone, {
+                // Fixa o pai para não limitar a largura no mobile
+                if (parent) {
+                    parent.style.width    = '720px';
+                    parent.style.maxWidth = '720px';
+                    parent.style.overflow = 'visible';
+                }
+
+                element.style.width        = '720px';
+                element.style.maxWidth     = '720px';
+                element.style.margin       = '0';
+                element.style.boxShadow    = 'none';
+                element.style.borderRadius = '0';
+                element.style.border       = 'none';
+                element.style.display      = 'block';
+                element.style.flex         = 'none';
+                element.style.overflow     = 'visible';
+
+                if (content) {
+                    content.style.height    = 'auto';
+                    content.style.minHeight = '0';
+                    content.style.overflow  = 'visible';
+                    content.style.maxHeight = 'none';
+                    content.style.flex      = 'none';
+                }
+
+                if (document.fonts && document.fonts.ready) await document.fonts.ready;
+                // Aguarda dois ciclos de layout para o reflow completar
+                await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+                const blob = await htmlToImage.toBlob(element, {
                     pixelRatio: 5,
                     cacheBust: true,
                     backgroundColor: '#ffffff'
@@ -1371,8 +1375,23 @@
 
                 if (!blob || blob.size === 0) throw new Error('Blob vazio.');
                 return { blob };
+
             } finally {
-                document.body.removeChild(clone);
+                // Restaura tudo
+                element.classList.remove('export-mode');
+
+                if (savedEl === null) element.removeAttribute('style');
+                else element.setAttribute('style', savedEl);
+
+                if (content) {
+                    if (savedContent === null) content.removeAttribute('style');
+                    else content.setAttribute('style', savedContent);
+                }
+
+                if (parent) {
+                    if (savedParent === null) parent.removeAttribute('style');
+                    else parent.setAttribute('style', savedParent);
+                }
             }
         }
 
