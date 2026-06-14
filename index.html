@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Resumo de Colheita SPG SEDE - 2026</title>
+    <title>Resumo de Colheita SPG Estufa</title>
     
     <!-- Configurações PWA -->
     <link rel="icon" type="image/png" href="https://i.imgur.com/wEozr34.png">
     <link rel="apple-touch-icon" href="https://i.imgur.com/wEozr34.png">
-    <link rel="manifest" href='data:application/manifest+json,{"name":"SPG SEDE 2026","short_name":"SPG SEDE","start_url":".","display":"standalone","background_color":"#ffffff","theme_color":"#ffffff","icons":[{"src":"https://i.imgur.com/wEozr34.png","sizes":"192x192","type":"image/png"},{"src":"https://i.imgur.com/wEozr34.png","sizes":"512x512","type":"image/png"}]}'>
+    <link rel="manifest" href='data:application/manifest+json,{"name":"SPG Estufa","short_name":"SPG Estufa","start_url":".","display":"standalone","background_color":"#ffffff","theme_color":"#ffffff","icons":[{"src":"https://i.imgur.com/wEozr34.png","sizes":"192x192","type":"image/png"},{"src":"https://i.imgur.com/wEozr34.png","sizes":"512x512","type":"image/png"}]}'>
     
     <meta name="theme-color" content="#ffffff">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="SPG SEDE">
+    <meta name="apple-mobile-web-app-title" content="SPG Estufa">
     
     <!-- Bibliotecas Externas -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -44,8 +44,8 @@
         <div class="flex items-center gap-3">
             <img src="https://i.imgur.com/wEozr34.png" alt="Logo SPG" class="w-8 h-8 rounded-lg shadow-sm border border-slate-100">
             <div>
-                <h1 class="text-sm font-bold text-slate-800 leading-tight">SPG SEDE</h1>
-                <p class="text-[10px] text-slate-500 font-medium">Resumo de Colheita SPG SEDE</p>
+                <h1 class="text-sm font-bold text-slate-800 leading-tight">SPG Estufa</h1>
+                <p class="text-[10px] text-slate-500 font-medium">Resumo de Colheita SPG Estufa</p>
             </div>
         </div>
         <div class="flex gap-2">
@@ -281,7 +281,7 @@
                 <!-- Rodapé Marca -->
                 <div class="bg-slate-100 p-3 text-center border-t border-slate-200 shrink-0">
                     <div class="flex justify-center items-center gap-2 text-[10px] text-slate-400 font-medium uppercase tracking-widest leading-relaxed">
-                        SPG SEDE • Dados Oficiais
+                        SPG Estufa • Dados Oficiais
                     </div>
                 </div>
 
@@ -571,11 +571,11 @@
                 endTime: document.getElementById('endTime')?.value || '',
                 intervalDuration: document.getElementById('intervalDuration')?.value || ''
             };
-            localStorage.setItem('spg_sede_inputs', JSON.stringify(inputs));
+            localStorage.setItem('spg_estufa_inputs', JSON.stringify(inputs));
         }
 
         function loadInputs() {
-            const saved = localStorage.getItem('spg_sede_inputs');
+            const saved = localStorage.getItem('spg_estufa_inputs');
             if (saved) {
                 try {
                     const inputs = JSON.parse(saved);
@@ -587,7 +587,7 @@
             }
         }
 
-        function saveData() { localStorage.setItem('spg_harvestData', JSON.stringify(harvestData)); }
+        function saveData() { localStorage.setItem('spg_estufa_harvestData', JSON.stringify(harvestData)); }
         
         function sortHarvestData() {
             harvestData.sort((a, b) => {
@@ -693,7 +693,7 @@
                 cucumberSize: document.getElementById('cucumberSize') ? document.getElementById('cucumberSize').value : '',
                 harvestNumber: document.getElementById('harvestNumber') ? document.getElementById('harvestNumber').value : '1',
                 discardReason: document.getElementById('discardReason') ? document.getElementById('discardReason').value : '',
-                indicadores: _lastIndicadores ? {..._lastIndicadores} : null
+                indicadores: _lastIndicadores ? {..._lastIndicadores} : (editingIndex >= 0 ? (harvestData[editingIndex]?.indicadores || null) : null)
             };
 
             if (editingIndex >= 0) {
@@ -745,6 +745,7 @@
         function editItem(index) {
             const item = harvestData[index];
             editingIndex = index;
+            _lastIndicadores = item.indicadores || null;
             
             switchTab(item.recordType || 'colheita');
             
@@ -783,6 +784,7 @@
             
             renderList();
             lucide.createIcons();
+            updatePreview();
         }
 
         function removeItem(index) {
@@ -902,8 +904,13 @@
             const currentData = harvestData.filter(item => (item.recordType || 'colheita') === currentRecordType);
             let sumUnits = 0, sumWeight = 0;
 
-            // Agrupa por estufa+talhao+ciclo para evitar cards duplicados do mesmo setor
-            const dataComPreview = [...currentData];
+            // Monta lista: quando há preview de edição, substitui o item original pelo preview
+            const dataComPreview = [];
+            harvestData.forEach((item, i) => {
+                if ((item.recordType || 'colheita') !== currentRecordType) return;
+                if (_previewItem && editingIndex === i) return; // substituído pelo preview
+                dataComPreview.push(item);
+            });
             if (_previewItem && currentRecordType === 'colheita') dataComPreview.push(_previewItem);
 
             const groupedData = [];
@@ -932,7 +939,7 @@
                 }
             });
 
-            if (!currentData.length) {
+            if (!dataComPreview.length) {
                 container.innerHTML = `<div class="p-8 text-center text-slate-400 text-xs italic leading-relaxed h-full flex items-center justify-center">Nenhum registro nesta aba.</div>`;
                 summaryStats.innerHTML = '';
             } else {
@@ -1092,7 +1099,7 @@
                         </div>
                     </div>`;
                 } else {
-                    if (groupedData.length <= 1) { summaryStats.innerHTML = ''; return; }
+                    if (groupedData.length <= 1) { summaryStats.innerHTML = ''; lucide.createIcons(); return; }
                     const overallAvg = sumUnits > 0 ? (sumWeight / sumUnits) : 0;
                     const totalWeightFormatted = formatSmart(sumWeight);
                     const overallAvgFormatted = formatSmart(overallAvg);
@@ -1404,7 +1411,7 @@
                 weekday = weekday.charAt(0).toUpperCase() + weekday.slice(1);
                 
                 const prefix = currentRecordType === 'colheita' ? "Resumo Colheita" : "Resumo Descarte";
-                const partnerName = "SPG SEDE";
+                const partnerName = "SPG Estufa";
                 const filename = `${prefix} - ${weekday} ${dateStr} Semana ${weekNum} - ${partnerName}.png`;
 
                 const now = new Date();
@@ -1498,7 +1505,7 @@
 
                 const prefix = currentRecordType === 'colheita' ? "Resumo Colheita" : "Resumo Descarte";
 
-                const filename = `${prefix} - ${dayOfWeek} ${day}-${month}-${year} Semana ${weekNumber} - SPG SEDE.pdf`;
+                const filename = `${prefix} - ${dayOfWeek} ${day}-${month}-${year} Semana ${weekNumber} - SPG Estufa.pdf`;
                 pdf.save(filename);
 
             } catch (err) { 
@@ -1520,10 +1527,10 @@
 
         let _indicadoresTimer;
         function updatePreview() {
-            if (editingIndex >= 0) { _previewItem = null; renderReport(); return; }
             const talhao = document.getElementById('talhao')?.value || '';
             if (!talhao || currentRecordType !== 'colheita') { _previewItem = null; renderReport(); return; }
             const commEl = document.getElementById('commercialVariety');
+            const existingInd = editingIndex >= 0 ? (harvestData[editingIndex]?.indicadores || null) : null;
             _previewItem = {
                 recordType: 'colheita',
                 _isPreview: true,
@@ -1536,7 +1543,7 @@
                 weight: document.getElementById('weight')?.value || '0',
                 cucumberSize: document.getElementById('cucumberSize')?.value || '',
                 harvestNumber: document.getElementById('harvestNumber')?.value || '1',
-                indicadores: _lastIndicadores ? {..._lastIndicadores} : null,
+                indicadores: _lastIndicadores ? {..._lastIndicadores} : existingInd,
                 _rawUnits: parsePTBRNumber(document.getElementById('dailyUnits')?.value || '0'),
                 _rawWeight: parsePTBRNumber(document.getElementById('weight')?.value || '0'),
                 _varieties: []
@@ -1556,9 +1563,10 @@
                 const card   = document.getElementById('indicadoresCard');
                 const status = document.getElementById('indicadoresStatus');
 
-                if (!estufa || !setor || !ciclo || !variedade || currentRecordType !== 'colheita') {
+                if (!estufa || !setor || !ciclo || currentRecordType !== 'colheita') {
                     if (card) card.classList.add('hidden');
                     _lastIndicadores = null;
+                    updatePreview();
                     return;
                 }
 
@@ -1573,6 +1581,7 @@
                     if (d.error) throw new Error(d.error);
 
                     _lastIndicadores = d;
+                    updatePreview();
 
                     document.getElementById('indQtdBaldes').innerText   = d.qtdBaldes > 0 ? d.qtdBaldes.toLocaleString('pt-BR') : 'Não encontrado';
                     document.getElementById('indUnPorPlanta').innerText  = d.qtdBaldes > 0 ? d.unidadesPorPlanta.toLocaleString('pt-BR', {maximumFractionDigits: 1}) : '-';
