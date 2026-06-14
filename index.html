@@ -1048,10 +1048,19 @@
                         </div>`;
                     } else {
                         const dataTransp = item.indicadores?.dataTransplantio || '';
-                        const primColh   = item.indicadores?.primeiraColheita || '';
-                        const diasAte    = item.indicadores?.diasAteColheita;
+                        let primColh   = item.indicadores?.primeiraColheita || '';
+                        let diasAte    = item.indicadores?.diasAteColheita;
+                        if (dataTransp && !primColh) {
+                            const hoje = new Date();
+                            primColh = hoje.toLocaleDateString('pt-BR');
+                            const partes = dataTransp.split('/');
+                            if (partes.length === 3) {
+                                const dataT = new Date(parseInt(partes[2]), parseInt(partes[1]) - 1, parseInt(partes[0]));
+                                diasAte = Math.floor((hoje - dataT) / (1000 * 60 * 60 * 24));
+                            }
+                        }
                         const infoTempo = (dataTransp && primColh)
-                            ? `<span class="text-[10px] text-slate-500 font-medium">transplantado em <strong class="text-teal-600">${dataTransp}</strong> · iniciou a colheita em <strong class="text-blue-600">${primColh}</strong>${diasAte !== '' ? ` <span class="text-slate-400">(${diasAte} dias)</span>` : ''}</span>`
+                            ? `<span class="text-[10px] text-slate-500 font-medium">transplantado em <strong class="text-teal-600">${dataTransp}</strong> · iniciou a colheita em <strong class="text-blue-600">${primColh}</strong>${diasAte !== undefined && diasAte !== '' ? ` <span class="text-slate-400">(${diasAte} dias)</span>` : ''}</span>`
                             : (dataTransp ? `<span class="text-[10px] text-slate-500 font-medium">transplantado em <strong class="text-teal-600">${dataTransp}</strong></span>` : '');
                         const isPreview = !!item._isPreview;
                         container.innerHTML += `
