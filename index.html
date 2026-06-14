@@ -101,6 +101,10 @@
                         <input type="number" id="intervalDuration" oninput="renderReport()" placeholder="Min" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none text-slate-700">
                     </div>
                 </div>
+                <div class="mt-1">
+                    <label class="text-[10px] font-bold text-slate-500 mb-1 block uppercase">Estimativa de Caixas (próxima colheita)</label>
+                    <input type="text" id="estimativaCaixas" oninput="formatNumberInput(this); renderReport()" placeholder="Ex: 10" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none text-slate-700">
+                </div>
             </div>
 
             <!-- TAB SWITCHER GLOBAL (Controle Independente) -->
@@ -130,11 +134,11 @@
                     <div class="grid grid-cols-3 gap-3">
                         <div>
                             <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">ESTUFA</label>
-                            <input type="text" id="estufa" placeholder="Ex: 1" required class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
+                            <input type="text" id="estufa" placeholder="Ex: 1" required oninput="fetchIndicadores(); updatePreview()" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
                         </div>
                         <div>
                             <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">SETOR</label>
-                            <select id="talhao" required class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm bg-white">
+                            <select id="talhao" required onchange="fetchIndicadores(); updatePreview()" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm bg-white">
                                 <option value="">Selecione...</option>
                                 <option value="1">1</option>
                                 <option value="2">2</option>
@@ -144,7 +148,7 @@
                         </div>
                         <div>
                             <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Ciclo</label>
-                            <input type="text" id="ciclo" placeholder="Ex: 1" required class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
+                            <input type="text" id="ciclo" placeholder="Ex: 1" required oninput="fetchIndicadores(); updatePreview()" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
                         </div>
                     </div>
 
@@ -163,6 +167,15 @@
                         </div>
                     </div>
 
+                    <!-- INDICADORES DO CICLO -->
+                    <div id="indicadoresCard" class="hidden">
+                        <span id="indicadoresStatus" class="hidden"></span>
+                        <span id="indQtdBaldes" class="hidden"></span>
+                        <span id="indUnPorPlanta" class="hidden"></span>
+                        <span id="indKgPorPlanta" class="hidden"></span>
+                        <span id="indTotalPeso" class="hidden"></span>
+                    </div>
+
                     <!-- INFORMAÇÕES ADICIONAIS -->
                     <div class="border-t border-slate-100 my-2 pt-2">
                         <label class="text-xs font-bold text-slate-400 block mb-3">Informações Adicionais</label>
@@ -171,11 +184,11 @@
                         <div class="grid grid-cols-2 gap-2 mb-2">
                              <div>
                                 <label class="text-[10px] font-bold text-slate-500 mb-1 block">Unidades (hoje)</label>
-                                <input type="text" id="dailyUnits" oninput="formatNumberInput(this); calcAverageWeight()" placeholder="Ex: 5.000" class="w-full p-2 border border-slate-300 rounded-lg text-sm">
+                                <input type="text" id="dailyUnits" oninput="formatNumberInput(this); calcAverageWeight(); updatePreview()" placeholder="Ex: 5.000" class="w-full p-2 border border-slate-300 rounded-lg text-sm">
                             </div>
                             <div>
                                 <label class="text-[10px] font-bold text-slate-500 mb-1 block">Peso (kg)</label>
-                                <input type="text" id="weight" oninput="formatDecimalInput(this); calcAverageWeight()" placeholder="Ex: 1,500" class="w-full p-2 border border-slate-300 rounded-lg text-sm">
+                                <input type="text" id="weight" oninput="formatDecimalInput(this); calcAverageWeight(); updatePreview()" placeholder="Ex: 1,500" class="w-full p-2 border border-slate-300 rounded-lg text-sm">
                             </div>
                         </div>
 
@@ -187,7 +200,7 @@
                             </div>
                             <div>
                                 <label class="text-[10px] font-bold text-slate-500 mb-1 block">Tam. Médio (cm)</label>
-                                <input type="text" id="cucumberSize" placeholder="Ex: 22" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
+                                <input type="text" id="cucumberSize" oninput="updatePreview()" placeholder="Ex: 22" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
                             </div>
                         </div>
 
@@ -230,21 +243,21 @@
 
         <!-- PREVIEW -->
         <div class="w-full lg:w-2/3 flex flex-col items-center p-0 rounded-3xl border border-slate-300/50 lg:sticky lg:top-24 lg:self-start">
-            <div id="report-card" class="w-full max-w-[440px] flex flex-col bg-white rounded-none shadow-2xl overflow-hidden border border-slate-100 relative">
+            <div id="report-card" class="w-full max-w-[720px] flex flex-col bg-white rounded-none shadow-2xl overflow-hidden border border-slate-100 relative">
                 
                 <!-- Cabeçalho -->
-                <div id="reportHeaderBg" class="bg-gradient-to-br from-emerald-600 to-emerald-800 p-6 text-white relative overflow-hidden flex flex-col justify-start shrink-0 gap-3 transition-colors duration-500">
-                    <img src="https://i.imgur.com/wEozr34.png" alt="Logo SPG" class="absolute top-4 right-4 w-20 h-20 z-0">
-                    <div class="relative z-10 w-full pr-24"> 
-                        <h2 id="reportTitle" class="text-base font-bold leading-snug tracking-normal"></h2>
-                        <div class="mt-3 pt-3 border-t border-white/20">
-                             <span id="headerDateTime" class="text-xs font-medium text-emerald-50 block opacity-90 tracking-wide"></span>
+                <div id="reportHeaderBg" class="p-5 text-white relative shrink-0 transition-colors duration-300" style="background-color:#1a5c3e">
+                    <div class="relative z-10">
+                        <h2 id="reportTitle" class="text-xl font-black leading-tight tracking-tight"></h2>
+                        <p id="headerDateTime" class="text-[11px] text-emerald-200 mt-1 font-medium opacity-90"></p>
+                        <div class="border-t border-white/20 mt-3 pt-2">
+                            <div id="headerOperational" class="flex items-center justify-between gap-3 text-[11px] text-white/75 w-full"></div>
                         </div>
                     </div>
                 </div>
 
                 <!-- SUMMARY STATS LOCATION (TOP) -->
-                <div id="summaryStats" class="bg-white px-4 pt-4 shrink-0">
+                <div id="summaryStats" class="bg-emerald-50 shrink-0">
                     <!-- Totals will be injected here -->
                 </div>
 
@@ -255,6 +268,15 @@
 
                 <!-- Footer Operacional -->
                 <div id="operationalFooter" class="bg-white border-t border-slate-200 p-4 shrink-0"></div>
+
+                <!-- Próximos Setores -->
+                <div id="proximosSetoresSection" class="hidden bg-white border-t border-slate-200 p-4 shrink-0">
+                    <div class="flex items-center gap-1.5 mb-3">
+                        <i data-lucide="calendar-clock" class="w-3.5 h-3.5 text-slate-400"></i>
+                        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Próximos Setores</span>
+                    </div>
+                    <div id="proximosSetoresCards" class="flex gap-2 flex-wrap"></div>
+                </div>
 
                 <!-- Rodapé Marca -->
                 <div class="bg-slate-100 p-3 text-center border-t border-slate-200 shrink-0">
@@ -296,6 +318,17 @@
         </div>
     </div>
 
+    <!-- OVERLAY SINCRONIZANDO -->
+    <div id="syncOverlay" class="fixed inset-0 z-[999] flex items-center justify-center backdrop-blur-sm bg-slate-900/30 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl px-10 py-8 flex flex-col items-center gap-4">
+            <svg class="animate-spin w-10 h-10 text-slate-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
+                <path class="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
+            <span class="text-[15px] font-bold text-slate-800 tracking-wide">Sincronizando Dados</span>
+        </div>
+    </div>
+
     <!-- MODAL GENÉRICO DE MENSAGEM -->
     <div id="messageModal" class="fixed inset-0 bg-black/50 z-50 hidden flex justify-center items-center backdrop-blur-sm transition-opacity duration-300">
         <div class="bg-white rounded-xl shadow-2xl p-6 w-11/12 max-w-sm transform transition-all scale-100 text-center">
@@ -312,16 +345,21 @@
     <script>
         console.log("Aplicação 'Resumo de Colheita SPG Oásis' reiniciada.");
 
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw0a22lBt9FYAMWRSdBPZT6lP7GPz3HI1rIorBaE3cBIrTUA2ne98jdeg-fd5ZDQSVZNg/exec";
+
         let harvestData = JSON.parse(localStorage.getItem('spg_harvestData')) || [];
         let editingIndex = -1;
         let clearConfirmTimer;
         let isProcessingShare = false;
         let currentRecordType = 'colheita';
+        let _lastIndicadores = null;
+        let _previewItem = null;
+        let _proximosSetores = [];
 
         lucide.createIcons();
-        
+
         // --- INICIALIZAÇÃO CORRETA DO FORMULÁRIO ---
-        setTimeout(() => {
+        setTimeout(async () => {
             const dateInput = document.getElementById('reportDate');
             if (dateInput) {
                 const today = new Date();
@@ -334,10 +372,56 @@
             loadInputs();
             clearBlockForm();
             sortHarvestData();
-            renderList(); 
+            renderList();
             updateDynamicTitle();
-            renderReport(); 
+
+            await syncAllIndicadores();
+
+            renderReport();
+
+            const overlay = document.getElementById('syncOverlay');
+            if (overlay) {
+                overlay.style.opacity = '0';
+                setTimeout(() => overlay.remove(), 300);
+            }
         }, 100);
+
+        async function syncAllIndicadores() {
+            if (!SCRIPT_URL) return;
+
+            // Busca setores pendentes
+            try {
+                const rp = await fetch(`${SCRIPT_URL}?action=pendentes&t=${Date.now()}`);
+                const dp = await rp.json();
+                if (dp.pendentes) _proximosSetores = dp.pendentes;
+            } catch(e) {}
+
+            if (!harvestData.length) return;
+            const seen = new Set();
+            const promises = harvestData
+                .filter(item => (item.recordType || 'colheita') === 'colheita')
+                .map(item => {
+                    const key = `${item.estufa}__${item.talhao}__${item.ciclo}`;
+                    if (seen.has(key)) return Promise.resolve();
+                    seen.add(key);
+                    const url = `${SCRIPT_URL}?estufa=${encodeURIComponent(item.estufa||'')}&setor=${encodeURIComponent(item.talhao||'')}&ciclo=${encodeURIComponent(item.ciclo||'')}&variedade=&t=${Date.now()}`;
+                    return fetch(url)
+                        .then(r => r.json())
+                        .then(d => {
+                            if (d.error) return;
+                            harvestData.forEach(h => {
+                                if ((h.estufa||'') === (item.estufa||'') &&
+                                    (h.talhao||'') === (item.talhao||'') &&
+                                    (h.ciclo||'')  === (item.ciclo||'')) {
+                                    h.indicadores = d;
+                                }
+                            });
+                        })
+                        .catch(() => {});
+                });
+            await Promise.all(promises);
+            saveData();
+        }
 
         // --- FUNÇÕES DE DATA E HORA ---
         function getWeekNumber(d) {
@@ -378,10 +462,47 @@
             const titleType = currentRecordType === 'descarte' ? 'Descarte' : 'Produção';
 
             const titleEl = document.getElementById('reportTitle');
-            if (titleEl) titleEl.innerHTML = `${greeting}<br>Resumo de ${titleType} de ${dayOfWeek}`;
-            
+            if (titleEl) titleEl.innerText = `Resumo de ${titleType} · ${dayOfWeek}`;
+
             const dateEl = document.getElementById('headerDateTime');
-            if (dateEl) dateEl.innerText = `Data: ${day}/${month}/${year} - ${timeString} - Semana ${weekNumber}`;
+            if (dateEl) dateEl.innerText = `${day}/${month}/${year} · ${timeString} · Semana ${weekNumber}`;
+
+            const opEl = document.getElementById('headerOperational');
+            if (opEl) {
+                if (currentRecordType !== 'descarte') {
+                    const crewVal = document.getElementById('crewCount')?.value || '';
+                    const startVal = document.getElementById('startTime')?.value || '--:--';
+                    const endVal = document.getElementById('endTime')?.value || '--:--';
+                    const intervalVal = document.getElementById('intervalDuration')?.value || '0';
+                    const totalVal = calculateTimeDifference(startVal, endVal, intervalVal);
+                    const crewText = crewVal ? `${crewVal} Colaborador${parseInt(crewVal) !== 1 ? 'es' : ''}` : '- Colaboradores';
+                    const estimativaVal = document.getElementById('estimativaCaixas')?.value || '';
+                    const nextDate = new Date(reportDate);
+                    nextDate.setDate(nextDate.getDate() + 1);
+                    const daysOfWeek = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+                    const nextDayName = daysOfWeek[nextDate.getDay()];
+                    const estimativaBadge = estimativaVal ? `<span class="flex items-center gap-1.5 bg-white/15 border border-white/20 rounded-full px-2.5 py-1 text-[10px] font-bold text-white whitespace-nowrap"><i data-lucide="package" class="w-3 h-3 text-emerald-300"></i> Estimativa ${nextDayName} <span class="text-emerald-300 text-sm font-black ml-0.5">${estimativaVal}</span> cx</span>` : '';
+                    opEl.innerHTML = `
+                        <div class="flex items-center gap-3 flex-wrap">
+                            <span class="flex items-center gap-1.5 text-white font-bold"><i data-lucide="users" class="w-3.5 h-3.5"></i> ${crewText}</span>
+                            <span class="text-white/25">|</span>
+                            <span class="flex items-center gap-1 text-white font-bold">
+                                <i data-lucide="play-circle" class="w-3.5 h-3.5 text-emerald-300"></i> ${startVal}
+                                <span class="mx-0.5 text-white/50">›</span>
+                                <i data-lucide="stop-circle" class="w-3.5 h-3.5 text-red-300"></i> ${endVal}
+                            </span>
+                            <span class="text-white/25">|</span>
+                            <span class="flex items-center gap-1 text-amber-300 font-bold"><i data-lucide="coffee" class="w-3.5 h-3.5 text-amber-300"></i> ${intervalVal} min</span>
+                            <span class="text-white/25">|</span>
+                            <span class="flex items-center gap-1 text-white font-bold"><i data-lucide="clock" class="w-3.5 h-3.5"></i> ${totalVal} h</span>
+                        </div>
+                        ${estimativaBadge}
+                    `;
+                    lucide.createIcons();
+                } else {
+                    opEl.innerHTML = '';
+                }
+            }
         }
 
         // --- FORMATAÇÃO E CÁLCULOS ---
@@ -540,7 +661,7 @@
             let html = `<label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Var. Comercial</label>`;
             
             if (variety === 'Pepino') {
-                html += `<select id="commercialVariety" required class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
+                html += `<select id="commercialVariety" required onchange="fetchIndicadores()" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
                     <option value="">Selecione...</option>
                     <option value="Aikido">Aikido</option>
                     <option value="Tikara">Tikara</option>
@@ -571,7 +692,8 @@
                 averageWeight: document.getElementById('averageWeight') ? document.getElementById('averageWeight').value : '',
                 cucumberSize: document.getElementById('cucumberSize') ? document.getElementById('cucumberSize').value : '',
                 harvestNumber: document.getElementById('harvestNumber') ? document.getElementById('harvestNumber').value : '1',
-                discardReason: document.getElementById('discardReason') ? document.getElementById('discardReason').value : ''
+                discardReason: document.getElementById('discardReason') ? document.getElementById('discardReason').value : '',
+                indicadores: _lastIndicadores ? {..._lastIndicadores} : null
             };
 
             if (editingIndex >= 0) {
@@ -588,6 +710,7 @@
         }
 
         function clearBlockForm() {
+            _previewItem = null;
             ['estufa','talhao','ciclo','dailyUnits','weight','averageWeight','cucumberSize','discardReason'].forEach(id => {
                 const el = document.getElementById(id);
                 if(el) el.value = '';
@@ -726,8 +849,46 @@
             lucide.createIcons();
         }
 
+        function renderProximosSetores() {
+            const section = document.getElementById('proximosSetoresSection');
+            const cards   = document.getElementById('proximosSetoresCards');
+            if (!section || !cards) return;
+            if (!_proximosSetores.length || currentRecordType === 'descarte') { section.classList.add('hidden'); return; }
+            section.classList.remove('hidden');
+            cards.innerHTML = _proximosSetores.map(s => {
+                const dias = s.diasRestantes;
+                const atrasado = dias < 0;
+                const semanas = Math.floor(Math.abs(dias) / 7);
+                const diasRest = Math.abs(dias) % 7;
+                const subLabel = semanas > 0 ? `${semanas} sem. e ${diasRest}d` : '';
+                const mainLabel = atrasado
+                    ? `${Math.abs(dias)}d atraso`
+                    : dias === 0 ? 'Hoje!'
+                    : dias === 1 ? 'Amanhã'
+                    : `${dias} dias`;
+                const cor = atrasado
+                    ? 'border-red-400 bg-red-100 text-red-600'
+                    : dias === 0 ? 'border-orange-300 bg-orange-50 text-orange-500'
+                    : dias === 1 ? 'border-yellow-300 bg-yellow-50 text-yellow-500'
+                    : dias <= 10 ? 'border-blue-200 bg-blue-50 text-blue-600'
+                    : 'border-slate-200 bg-white text-slate-700';
+                const barColor = atrasado ? 'bg-red-400' : dias === 0 ? 'bg-orange-400' : dias === 1 ? 'bg-yellow-400' : dias <= 10 ? 'bg-blue-400' : 'bg-slate-300';
+                return `<div class="border-2 rounded-2xl overflow-hidden flex flex-col items-center min-w-[90px] shadow-sm ${cor}">
+                    <div class="w-full h-1.5 ${barColor}"></div>
+                    <div class="flex flex-col items-center p-3">
+                        <span class="text-[10px] font-extrabold text-slate-800 mb-0.5">Setor ${s.setor}</span>
+                        <span class="text-[9px] text-slate-400 mb-1">${s.dataEstimada}</span>
+                        <span class="text-base font-extrabold">${mainLabel}</span>
+                        ${subLabel ? `<span class="text-[9px] opacity-60 mt-0.5">${subLabel}</span>` : ''}
+                    </div>
+                </div>`;
+            }).join('');
+            lucide.createIcons();
+        }
+
         function renderReport() {
             updateDynamicTitle();
+            renderProximosSetores();
             saveInputs();
 
             const container = document.getElementById('reportContent');
@@ -735,123 +896,223 @@
             
             const reportHeader = document.getElementById('reportHeaderBg');
             if (reportHeader) {
-                if (currentRecordType === 'descarte') {
-                    reportHeader.className = "bg-[#688679] p-6 text-white relative overflow-hidden flex flex-col justify-start shrink-0 gap-3 transition-colors duration-500";
-                } else {
-                    reportHeader.className = "bg-gradient-to-br from-emerald-600 to-emerald-800 p-6 text-white relative overflow-hidden flex flex-col justify-start shrink-0 gap-3 transition-colors duration-500";
-                }
+                reportHeader.style.backgroundColor = currentRecordType === 'descarte' ? '#1e293b' : '#1a5c3e';
             }
             
             const currentData = harvestData.filter(item => (item.recordType || 'colheita') === currentRecordType);
             let sumUnits = 0, sumWeight = 0;
+
+            // Agrupa por estufa+talhao+ciclo para evitar cards duplicados do mesmo setor
+            const dataComPreview = [...currentData];
+            if (_previewItem && currentRecordType === 'colheita') dataComPreview.push(_previewItem);
+
+            const groupedData = [];
+            const groupMap = {};
+            dataComPreview.forEach(item => {
+                const isDescarte = (item.recordType || 'colheita') === 'descarte';
+                const varietyKey = isDescarte ? `__${item.commercialVariety || item.variety || ''}` : '';
+                const key = `${item.estufa}__${item.talhao}__${item.ciclo}${varietyKey}`;
+                if (groupMap[key] !== undefined) {
+                    const g = groupedData[groupMap[key]];
+                    g._rawUnits  += parsePTBRNumber(item.dailyUnits);
+                    g._rawWeight += parsePTBRNumber(item.weight);
+                    const v = item.commercialVariety || item.variety;
+                    if (v && !g._varieties.includes(v)) g._varieties.push(v);
+                    g.harvestNumber = String((parseInt(g.harvestNumber)||1) + (parseInt(item.harvestNumber)||1));
+                    if (!g.cucumberSize && item.cucumberSize) g.cucumberSize = item.cucumberSize;
+                } else {
+                    groupMap[key] = groupedData.length;
+                    const v = item.commercialVariety || item.variety;
+                    groupedData.push({
+                        ...item,
+                        _rawUnits:  parsePTBRNumber(item.dailyUnits),
+                        _rawWeight: parsePTBRNumber(item.weight),
+                        _varieties: v ? [v] : []
+                    });
+                }
+            });
 
             if (!currentData.length) {
                 container.innerHTML = `<div class="p-8 text-center text-slate-400 text-xs italic leading-relaxed h-full flex items-center justify-center">Nenhum registro nesta aba.</div>`;
                 summaryStats.innerHTML = '';
             } else {
                 container.innerHTML = '';
-                currentData.forEach(item => {
+                groupedData.forEach(item => {
                     const isDescarte = currentRecordType === 'descarte';
 
-                    sumUnits += parsePTBRNumber(item.dailyUnits);
-                    sumWeight += parsePTBRNumber(item.weight);
+                    sumUnits  += item._rawUnits;
+                    sumWeight += item._rawWeight;
 
-                    // Aqui removemos o fundo e o padding do texto DESCARTE
-                    const harvestText = isDescarte ? '<span class="text-[#688679] font-extrabold">DESCARTE</span>' : (item.harvestNumber === '1' ? '1 Colheita' : `${item.harvestNumber} Colheitas`);
-                    
-                    const rawWeight = parsePTBRNumber(item.weight);
-                    const rawUnits = parsePTBRNumber(item.dailyUnits);
+                    const harvestText = item.harvestNumber === '1' ? '1 Colheita' : `${item.harvestNumber} Colheitas`;
+                    const rawWeight = item._rawWeight;
+                    const rawUnits  = item._rawUnits;
                     const calculatedAvg = rawUnits > 0 ? (rawWeight / rawUnits) : 0;
-                    
                     const displayWeight = formatSmart(rawWeight);
                     const displayAvg = formatSmart(calculatedAvg);
+                    const displayTitle = item._varieties.length > 1 ? item._varieties.join(' · ') : (item._varieties[0] || item.variety);
 
-                    const bgClass = isDescarte ? 'bg-[#688679]/5 border-b border-[#688679]/20' : 'hover:bg-slate-50 border-b border-slate-100';
-                    const titleColor = isDescarte ? 'text-[#5a7469]' : 'text-slate-800';
-                    
-                    // Exibe a variedade principal e a comercial juntas no relatório (imagem)
-                    const displayTitle = item.commercialVariety ? `${item.variety} - ${item.commercialVariety}` : item.variety;
-
-                    let statsHtml = '';
                     if (isDescarte) {
-                        statsHtml = `
-                        <div class="grid grid-cols-2 gap-2">
-                            ${createStatItem('package', item.dailyUnits, 'UNIDADES', 'descarte')}
-                            ${createStatItem('scale', displayWeight, 'PESO (KG)', 'descarte')}
-                            <div class="col-span-2 mt-1">
-                                <span class="text-[10px] font-bold text-[#688679] block uppercase mb-1">Motivo do Descarte:</span>
-                                <p class="text-xs text-[#5a7469] font-semibold bg-slate-100 p-2 rounded-lg border border-slate-300">${item.discardReason || 'Não informado'}</p>
+                        const mediaPeso = rawUnits > 0 ? formatSmart((rawWeight / rawUnits) * 1000) : '-';
+                        container.innerHTML += `
+                        <div class="border-b border-red-100">
+                            <div class="flex items-stretch">
+                                <div class="w-1 bg-red-400 shrink-0 rounded-l"></div>
+                                <div class="flex-1 p-5">
+                                    <div class="flex items-start justify-between mb-2">
+                                        <div class="flex-1">
+                                            <div class="flex items-center gap-2 flex-wrap">
+                                                <span class="text-lg font-black text-slate-800">Setor ${item.talhao}</span>
+                                                <span class="text-[10px] font-extrabold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full">Ciclo ${item.ciclo || '-'}</span>
+                                                <span class="text-[11px] text-slate-400 font-medium">Estufa ${item.estufa || '-'}</span>
+                                                ${(item.commercialVariety || item.variety) ? `<span class="text-[11px] font-semibold text-slate-500">${item.commercialVariety || item.variety}</span>` : ''}
+                                            </div>
+                                        </div>
+                                                        <span class="text-[10px] font-extrabold text-slate-600 border-2 border-slate-300 bg-slate-100 px-3 py-1 rounded-full whitespace-nowrap ml-2 tracking-wide">DESCARTE</span>
+                                    </div>
+                                    <div class="border-t border-slate-100 mb-3"></div>
+                                    <div class="grid grid-cols-3 gap-2 mb-3">
+                                        <div class="bg-slate-50 rounded-xl p-3 flex flex-col items-center border border-slate-200">
+                                            <i data-lucide="hash" class="w-4 h-4 text-slate-400 mb-1"></i>
+                                            <span class="text-base font-extrabold text-slate-700">${item.dailyUnits || '-'}</span>
+                                            <span class="text-[9px] font-bold text-slate-400 uppercase mt-1">Unidades</span>
+                                        </div>
+                                        <div class="bg-slate-50 rounded-xl p-3 flex flex-col items-center border border-slate-200">
+                                            <i data-lucide="weight" class="w-4 h-4 text-slate-400 mb-1"></i>
+                                            <span class="text-base font-extrabold text-slate-700">${displayWeight}</span>
+                                            <span class="text-[9px] font-bold text-slate-400 uppercase mt-1">Peso (kg)</span>
+                                        </div>
+                                        <div class="bg-slate-50 rounded-xl p-3 flex flex-col items-center border border-slate-200">
+                                            <i data-lucide="scale" class="w-4 h-4 text-slate-400 mb-1"></i>
+                                            <span class="text-base font-extrabold text-slate-700">${mediaPeso} g</span>
+                                            <span class="text-[9px] font-bold text-slate-400 uppercase mt-1">Média (g)</span>
+                                        </div>
+                                    </div>
+                                    <div class="bg-slate-50 rounded-xl p-3 border border-slate-200 flex items-start gap-2">
+                                        <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0"></i>
+                                        <div>
+                                            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Motivo do Descarte</span>
+                                            <p class="text-[11px] text-slate-700 font-semibold">${item.discardReason || 'Não informado'}</p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>`;
                     } else {
-                        statsHtml = `
-                        <div class="grid grid-cols-2 gap-2">
-                            ${createStatItem('package', item.dailyUnits, 'UNIDADES (HOJE)', true)}
-                            ${createStatItem('scale', displayWeight, 'PESO (KG)')}
-                            ${createStatItem('gauge', displayAvg + ' g', 'PESO MÉDIO (G/UNID.)')}
-                            ${createStatItem('ruler', item.cucumberSize || '-', 'TAM. MÉDIO (CM)')}
+                        const dataTransp = item.indicadores?.dataTransplantio || '';
+                        const primColh   = item.indicadores?.primeiraColheita || '';
+                        const diasAte    = item.indicadores?.diasAteColheita;
+                        const infoTempo = (dataTransp && primColh)
+                            ? `<span class="text-[10px] text-slate-500 font-medium">transplantado em <strong class="text-teal-600">${dataTransp}</strong> · iniciou a colheita em <strong class="text-blue-600">${primColh}</strong>${diasAte !== '' ? ` <span class="text-slate-400">(${diasAte} dias)</span>` : ''}</span>`
+                            : (dataTransp ? `<span class="text-[10px] text-slate-500 font-medium">transplantado em <strong class="text-teal-600">${dataTransp}</strong></span>` : '');
+                        const isPreview = !!item._isPreview;
+                        container.innerHTML += `
+                        <div class="p-5 border-b ${isPreview ? 'border-dashed border-blue-200 bg-blue-50/30' : 'border-slate-100'}">
+                            <div class="flex items-start justify-between mb-1">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-0.5 flex-wrap">
+                                        <span class="text-lg font-black text-slate-800">Setor ${item.talhao}</span>
+                                        <span class="text-[10px] font-extrabold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full">Ciclo ${item.ciclo || '-'}</span>
+                                        ${infoTempo}
+                                    </div>
+                                </div>
+                                ${isPreview
+                                    ? `<span class="text-[10px] font-extrabold text-blue-500 border-2 border-blue-300 border-dashed bg-blue-50 px-3 py-1 rounded-full whitespace-nowrap ml-2 mt-0.5 tracking-wide">PRÉVIA</span>`
+                                    : `<span class="text-[10px] font-extrabold text-emerald-600 border-2 border-emerald-300 bg-emerald-50 px-3 py-1 rounded-full whitespace-nowrap ml-2 mt-0.5 tracking-wide">EM ANDAMENTO</span>`
+                                }
+                            </div>
+                            <div class="border-t border-slate-100 my-3"></div>
+                            ${item.indicadores && item.indicadores.qtdBaldes > 0 ? (() => {
+                                const ind = item.indicadores;
+                                const totalUnComHoje = ind.totalUnidades + item._rawUnits;
+                                const totalKgComHoje = ind.totalPeso + item._rawWeight;
+                                const plantas = ind.qtdBaldes.toLocaleString('pt-BR');
+                                const totalUn = totalUnComHoje.toLocaleString('pt-BR');
+                                const totalKg = totalKgComHoje.toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 1});
+                                const kgPl = ind.qtdBaldes > 0 ? (totalKgComHoje / ind.qtdBaldes).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '0';
+                                const unPl = ind.qtdBaldes > 0 ? (totalUnComHoje / ind.qtdBaldes).toLocaleString('pt-BR', {maximumFractionDigits: 1}) : '0';
+                                const pendentes = Math.max(0, ind.qtdBaldes - totalUnComHoje);
+                                const pctColhido = ind.qtdBaldes > 0 ? Math.round((totalUnComHoje / ind.qtdBaldes) * 100) : 0;
+                                const pctPend = 100 - pctColhido;
+                                return `<div class="mb-3">
+                                    <div class="flex items-center gap-1.5 mb-1.5">
+                                        <i data-lucide="layout-grid" class="w-3 h-3 text-slate-400"></i>
+                                        <span class="text-[10px] font-bold text-slate-600 uppercase tracking-wide">Setor</span>
+                                        <span class="text-[10px] text-slate-400 font-medium">· Todas as variedades</span>
+                                    </div>
+                                    <p class="text-[11px] text-slate-600 leading-relaxed">
+                                        De <strong class="text-slate-800">${plantas} plantas</strong>, foram colhidas <strong class="text-slate-800">${totalUn} unidades</strong> e já produziu total de <strong class="text-blue-600">${totalKg} kg</strong> <span class="text-slate-300 mx-1">·</span><span class="inline-flex items-center gap-1 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5 text-[10px] font-bold text-emerald-700">KG/Planta ${kgPl} kg</span> <span class="inline-flex items-center gap-1 bg-red-50 border border-red-200 rounded-full px-2 py-0.5 text-[10px] font-bold text-red-500">Unid/Planta ${unPl}</span>
+                                    </p>
+                                    <div class="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                        <div class="h-full bg-emerald-400 rounded-full" style="width:${Math.min(pctColhido,100)}%"></div>
+                                    </div>
+                                </div>`;
+                            })() : ''}
+                            <div class="flex items-center gap-1 mb-2">
+                                <i data-lucide="sun" class="w-3 h-3 text-orange-400"></i>
+                                <span class="text-[10px] font-bold text-orange-500 uppercase tracking-wider">Colheita de Hoje</span>
+                            </div>
+                            <div class="grid ${item.cucumberSize ? 'grid-cols-4' : 'grid-cols-3'} gap-2">
+                                <div class="bg-orange-50 rounded-xl p-3 flex flex-col items-center border border-orange-100">
+                                    <i data-lucide="weight" class="w-4 h-4 text-orange-400 mb-1"></i>
+                                    <span class="text-base font-extrabold text-orange-800">${displayWeight}</span>
+                                    <span class="text-[9px] font-bold text-orange-500 uppercase mt-1">Peso (kg)</span>
+                                </div>
+                                <div class="bg-orange-50 rounded-xl p-3 flex flex-col items-center border border-orange-100">
+                                    <i data-lucide="hash" class="w-4 h-4 text-orange-400 mb-1"></i>
+                                    <span class="text-base font-extrabold text-orange-800">${item.dailyUnits || '-'}</span>
+                                    <span class="text-[9px] font-bold text-orange-500 uppercase mt-1">Unidades</span>
+                                </div>
+                                <div class="bg-orange-50 rounded-xl p-3 flex flex-col items-center border border-orange-100">
+                                    <i data-lucide="scale" class="w-4 h-4 text-orange-400 mb-1"></i>
+                                    <span class="text-base font-extrabold text-orange-800">${displayAvg} g</span>
+                                    <span class="text-[9px] font-bold text-orange-500 uppercase mt-1">Peso Médio</span>
+                                </div>
+                                ${item.cucumberSize ? `<div class="bg-slate-100 rounded-xl p-3 flex flex-col items-center border border-slate-200">
+                                    <i data-lucide="ruler" class="w-4 h-4 text-slate-400 mb-1"></i>
+                                    <span class="text-base font-extrabold text-slate-700">${item.cucumberSize} cm</span>
+                                    <span class="text-[9px] font-bold text-slate-500 uppercase mt-1">Tam. Médio</span>
+                                </div>` : ''}
+                            </div>
                         </div>`;
                     }
-
-                    container.innerHTML += `
-                    <div class="p-5 transition-colors group ${bgClass}">
-                        
-                        <div class="flex justify-between items-start mb-4 pb-2">
-                            <div class="flex flex-col items-start w-full">
-                                <div class="flex items-center gap-2 mb-1 w-full justify-between">
-                                    <span class="text-xl font-black ${titleColor} uppercase tracking-tight leading-tight">${displayTitle}</span>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">ESTUFA ${item.estufa || '-'}</span>
-                                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">-</span>
-                                    <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">SETOR ${item.talhao}</span>
-                                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">-</span>
-                                    <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">CICLO ${item.ciclo || '-'}</span>
-                                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">-</span>
-                                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">${harvestText}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="flex flex-col gap-3"> 
-                            ${statsHtml}
-                        </div>
-                    </div>`;
                 });
 
                 if (currentRecordType === 'descarte') {
                     summaryStats.innerHTML = `
-                    <div class="bg-[#688679]/10 rounded-lg p-3 flex justify-around items-center border border-[#688679]/20 shadow-sm mx-4 mt-4 mb-6">
-                        <div class="text-center">
-                            <div class="text-[10px] text-[#688679] font-bold uppercase mb-1">TOTAL DESCARTE (UN)</div>
-                            <div class="text-xl font-extrabold text-[#5a7469]">${sumUnits.toLocaleString('pt-BR')}</div>
+                    <div class="grid grid-cols-2 items-stretch border-b border-slate-200 bg-slate-50">
+                        <div class="flex flex-col items-center justify-center py-4 px-2 gap-1 border-r border-slate-200" style="align-self:stretch">
+                            <i data-lucide="hash" class="w-5 h-5 text-slate-400"></i>
+                            <span class="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Total Descarte (un)</span>
+                            <span class="text-xl font-extrabold text-slate-800">${sumUnits.toLocaleString('pt-BR')}</span>
                         </div>
-                        <div class="w-px h-10 bg-[#688679]/30"></div>
-                        <div class="text-center">
-                            <div class="text-[10px] text-[#688679] font-bold uppercase mb-1">TOTAL DESCARTE (KG)</div>
-                            <div class="text-xl font-extrabold text-[#5a7469]">${formatSmart(sumWeight)}</div>
+                        <div class="flex flex-col items-center justify-center py-4 px-2 gap-1" style="align-self:stretch">
+                            <i data-lucide="weight" class="w-5 h-5 text-slate-400"></i>
+                            <span class="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Total Descarte (kg)</span>
+                            <span class="text-xl font-extrabold text-slate-800">${formatSmart(sumWeight)}</span>
                         </div>
                     </div>`;
                 } else {
+                    if (groupedData.length <= 1) { summaryStats.innerHTML = ''; return; }
                     const overallAvg = sumUnits > 0 ? (sumWeight / sumUnits) : 0;
                     const totalWeightFormatted = formatSmart(sumWeight);
                     const overallAvgFormatted = formatSmart(overallAvg);
 
                     summaryStats.innerHTML = `
-                    <div class="bg-orange-50 rounded-lg p-4 flex justify-around items-center border border-orange-100 shadow-sm mx-4 mt-4 mb-6">
-                        <div class="text-center">
-                            <div class="text-[10px] text-orange-600 font-bold uppercase mb-1">TOTAL UNIDADES</div>
-                            <div class="text-xl font-extrabold text-orange-800">${sumUnits.toLocaleString('pt-BR')}</div>
+                    <div class="grid grid-cols-3 border-b border-emerald-200" style="align-items:stretch">
+                        <div class="flex flex-col items-center justify-center py-4 px-2 gap-1 border-r border-emerald-200" style="align-self:stretch">
+                            <i data-lucide="hash" class="w-5 h-5 text-emerald-500"></i>
+                            <span class="text-[10px] font-extrabold text-emerald-700 uppercase tracking-wider">Unidades</span>
+                            <span class="text-xl font-extrabold text-emerald-900">${sumUnits.toLocaleString('pt-BR')}</span>
                         </div>
-                        <div class="w-px h-10 bg-orange-200"></div>
-                        <div class="text-center">
-                            <div class="text-[10px] text-orange-600 font-bold uppercase mb-1">TOTAL (KG)</div>
-                            <div class="text-xl font-extrabold text-orange-800">${totalWeightFormatted}</div>
+                        <div class="flex flex-col items-center justify-center py-4 px-2 gap-1 border-r border-emerald-200" style="align-self:stretch">
+                            <i data-lucide="weight" class="w-5 h-5 text-emerald-500"></i>
+                            <span class="text-[10px] font-extrabold text-emerald-700 uppercase tracking-wider">Peso (kg)</span>
+                            <span class="text-xl font-extrabold text-emerald-900">${totalWeightFormatted}</span>
                         </div>
-                        <div class="w-px h-10 bg-orange-200"></div>
-                        <div class="text-center">
-                            <div class="text-[10px] text-orange-600 font-bold uppercase mb-1">MÉDIA (G/UNID.)</div>
-                            <div class="text-xl font-extrabold text-orange-800">${overallAvgFormatted + ' g'}</div>
+                        <div class="flex flex-col items-center justify-center py-4 px-2 gap-1" style="align-self:stretch">
+                            <i data-lucide="scale" class="w-5 h-5 text-emerald-500"></i>
+                            <span class="text-[10px] font-extrabold text-emerald-700 uppercase tracking-wider">Média G/Un.</span>
+                            <span class="text-xl font-extrabold text-emerald-900">${overallAvgFormatted} g</span>
                         </div>
                     </div>`;
                 }
@@ -859,30 +1120,8 @@
                 
             const footer = document.getElementById('operationalFooter');
             if (footer) {
-                if (currentRecordType === 'descarte') {
-                    footer.classList.add('hidden');
-                    footer.innerHTML = '';
-                    lucide.createIcons();
-                    return;
-                }
-
-                footer.classList.remove('hidden');
-                const crewValue = document.getElementById('crewCount').value;
-                const crew = crewValue ? (parseInt(crewValue) === 1 ? `${crewValue} Colaborador` : `${crewValue} Colaboradores`) : '-';
-                
-                footer.innerHTML = `
-                    <div class="flex justify-center items-center mb-4 pb-4 border-b border-slate-200 border-dashed">
-                         <span class="text-xs font-bold text-slate-600">Equipe de Colheita: <span class="text-slate-800 text-sm font-extrabold">${crew}</span></span>
-                    </div>
-                    <div class="text-center mb-2">
-                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Horas de Colheita</span>
-                    </div>
-                    <div class="grid grid-cols-4 gap-2 text-[10px] text-slate-500 font-medium">
-                        <div class="flex flex-col items-center"><span class="text-emerald-600 font-bold mb-0.5 uppercase">Início</span><span class="text-slate-700 font-bold text-xs">${document.getElementById('startTime').value || '--:--'}</span></div>
-                        <div class="flex flex-col items-center border-l border-slate-200"><span class="text-red-600 font-bold mb-0.5 uppercase">Final</span><span class="text-slate-700 font-bold text-xs">${document.getElementById('endTime').value || '--:--'}</span></div>
-                        <div class="flex flex-col items-center border-l border-slate-200"><span class="text-amber-600 font-bold mb-0.5 uppercase">Intervalo</span><span class="text-slate-700 font-bold text-xs">${document.getElementById('intervalDuration').value || '0'} min</span></div>
-                        <div class="flex flex-col items-center border-l border-slate-200"><span class="text-slate-800 font-bold mb-0.5 uppercase">Total</span><span class="text-slate-900 font-extrabold text-xs">${calculateTimeDifference(document.getElementById('startTime').value, document.getElementById('endTime').value, document.getElementById('intervalDuration').value)} h</span></div>
-                    </div>`;
+                footer.classList.add('hidden');
+                footer.innerHTML = '';
             }
             
             lucide.createIcons();
@@ -1055,8 +1294,8 @@
                 try {
                     source.classList.add('export-mode');
 
-                    source.style.width = '440px';
-                    source.style.maxWidth = '440px';
+                    source.style.width = '720px';
+                    source.style.maxWidth = '720px';
                     source.style.margin = '0';
                     source.style.boxShadow = 'none';
                     source.style.borderRadius = '0';
@@ -1279,10 +1518,77 @@
             document.body.removeChild(link);
         }
 
+        let _indicadoresTimer;
+        function updatePreview() {
+            if (editingIndex >= 0) { _previewItem = null; renderReport(); return; }
+            const talhao = document.getElementById('talhao')?.value || '';
+            if (!talhao || currentRecordType !== 'colheita') { _previewItem = null; renderReport(); return; }
+            const commEl = document.getElementById('commercialVariety');
+            _previewItem = {
+                recordType: 'colheita',
+                _isPreview: true,
+                estufa: document.getElementById('estufa')?.value || '',
+                talhao,
+                ciclo: document.getElementById('ciclo')?.value || '',
+                variety: document.getElementById('variety')?.value || '',
+                commercialVariety: commEl ? commEl.value : '',
+                dailyUnits: document.getElementById('dailyUnits')?.value || '0',
+                weight: document.getElementById('weight')?.value || '0',
+                cucumberSize: document.getElementById('cucumberSize')?.value || '',
+                harvestNumber: document.getElementById('harvestNumber')?.value || '1',
+                indicadores: _lastIndicadores ? {..._lastIndicadores} : null,
+                _rawUnits: parsePTBRNumber(document.getElementById('dailyUnits')?.value || '0'),
+                _rawWeight: parsePTBRNumber(document.getElementById('weight')?.value || '0'),
+                _varieties: []
+            };
+            renderReport();
+        }
+
+        async function fetchIndicadores() {
+            clearTimeout(_indicadoresTimer);
+            _indicadoresTimer = setTimeout(async () => {
+                const estufa   = (document.getElementById('estufa')?.value || '').trim();
+                const setor    = (document.getElementById('talhao')?.value || '').trim();
+                const ciclo    = (document.getElementById('ciclo')?.value || '').trim();
+                const commEl   = document.getElementById('commercialVariety');
+                const variedade = commEl ? (commEl.value || '').trim() : '';
+
+                const card   = document.getElementById('indicadoresCard');
+                const status = document.getElementById('indicadoresStatus');
+
+                if (!estufa || !setor || !ciclo || !variedade || currentRecordType !== 'colheita') {
+                    if (card) card.classList.add('hidden');
+                    _lastIndicadores = null;
+                    return;
+                }
+
+                if (card) card.classList.remove('hidden');
+                if (status) status.innerText = 'Buscando...';
+
+                try {
+                    const url = `${SCRIPT_URL}?estufa=${encodeURIComponent(estufa)}&setor=${encodeURIComponent(setor)}&ciclo=${encodeURIComponent(ciclo)}&variedade=${encodeURIComponent(variedade)}&t=${Date.now()}`;
+                    const resp = await fetch(url);
+                    const d = await resp.json();
+
+                    if (d.error) throw new Error(d.error);
+
+                    _lastIndicadores = d;
+
+                    document.getElementById('indQtdBaldes').innerText   = d.qtdBaldes > 0 ? d.qtdBaldes.toLocaleString('pt-BR') : 'Não encontrado';
+                    document.getElementById('indUnPorPlanta').innerText  = d.qtdBaldes > 0 ? d.unidadesPorPlanta.toLocaleString('pt-BR', {maximumFractionDigits: 1}) : '-';
+                    document.getElementById('indKgPorPlanta').innerText  = d.qtdBaldes > 0 ? d.kgPorPlanta.toLocaleString('pt-BR', {minimumFractionDigits: 3, maximumFractionDigits: 3}) + ' kg' : '-';
+                    document.getElementById('indTotalPeso').innerText    = d.totalPeso.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' kg';
+                    if (status) status.innerText = `${d.totalUnidades.toLocaleString('pt-BR')} un. acumuladas`;
+                    lucide.createIcons();
+                } catch (err) {
+                    if (status) status.innerText = 'Erro ao buscar';
+                    console.error('fetchIndicadores:', err);
+                }
+            }, 700);
+        }
+
         async function sendDataToGoogleSheets(payload) {
-            const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwfJ08SvceO8EXheN0aj9YHhr8r8r9FmUrsSGC3u7UmYDpfftVUV5bn-eBIVX6mttlG/exec"; 
-            
-            if (SCRIPT_URL === "COLE_SUA_URL_DO_APPS_SCRIPT_AQUI" || !SCRIPT_URL) {
+            if (!SCRIPT_URL) {
                 console.log("Integração com Sheets pulada: URL não configurada.");
                 return;
             }
