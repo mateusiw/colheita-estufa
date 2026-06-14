@@ -1327,91 +1327,53 @@
             const element = document.getElementById('report-card');
             if (!element) throw new Error('Elemento do relatório não encontrado.');
 
-            const attempts = [
-                { name: 'Original sem ocultacao de imagens externas', hideExternalImages: false },
-                { name: 'Original com ocultacao de imagens externas', hideExternalImages: true }
-            ];
+            // Clona o card off-screen a 720px fixos — desvinculado do viewport do celular
+            const clone = element.cloneNode(true);
+            clone.classList.add('export-mode');
+            clone.style.cssText = [
+                'position:fixed',
+                'top:0',
+                'left:-9999px',
+                'width:720px',
+                'max-width:720px',
+                'margin:0',
+                'box-shadow:none',
+                'border-radius:0',
+                'border:none',
+                'display:block',
+                'flex:none',
+                'z-index:-1'
+            ].join(';');
 
-            const errors = [];
-
-            for (const attempt of attempts) {
-                const source = element;
-                const content = source.querySelector('#reportContent');
-                const sourceStyle = source.getAttribute('style');
-                const contentStyle = content ? content.getAttribute('style') : null;
-                const imageStyleCache = [];
-                try {
-                    source.classList.add('export-mode');
-
-                    source.style.width = '720px';
-                    source.style.maxWidth = '720px';
-                    source.style.margin = '0';
-                    source.style.boxShadow = 'none';
-                    source.style.borderRadius = '0';
-                    source.style.border = 'none';
-                    source.style.display = 'block';
-                    source.style.flex = 'none';
-
-                    if (content) {
-                        content.style.height = 'auto';
-                        content.style.minHeight = '0';
-                        content.style.overflow = 'visible';
-                        content.style.maxHeight = 'none';
-                        content.style.flex = 'none';
-                    }
-
-                    if (attempt.hideExternalImages) {
-                        const externalImages = source.querySelectorAll('img');
-                        externalImages.forEach((img) => {
-                            const src = img.getAttribute('src') || '';
-                            if (/^https?:\/\//i.test(src)) {
-                                imageStyleCache.push({ img, visibility: img.style.visibility });
-                                img.style.visibility = 'hidden';
-                            }
-                        });
-                    }
-
-                    if (document.fonts && document.fonts.ready) {
-                        await document.fonts.ready;
-                    }
-                    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-
-                    const blob = await htmlToImage.toBlob(source, {
-                        pixelRatio: 5,
-                        cacheBust: true,
-                        backgroundColor: '#ffffff'
-                    });
-
-                    if (!blob || blob.size === 0) {
-                        throw new Error('Blob vazio.');
-                    }
-
-                    return { blob, mode: attempt.name };
-                } catch (err) {
-                    errors.push(`${attempt.name}: ${err.message}`);
-                } finally {
-                    imageStyleCache.forEach(({ img, visibility }) => {
-                        img.style.visibility = visibility || '';
-                    });
-
-                    if (content) {
-                        if (contentStyle === null) {
-                            content.removeAttribute('style');
-                        } else {
-                            content.setAttribute('style', contentStyle);
-                        }
-                    }
-
-                    if (sourceStyle === null) {
-                        source.removeAttribute('style');
-                    } else {
-                        source.setAttribute('style', sourceStyle);
-                    }
-                    source.classList.remove('export-mode');
-                }
+            const cloneContent = clone.querySelector('#reportContent');
+            if (cloneContent) {
+                cloneContent.style.cssText = 'height:auto;min-height:0;overflow:visible;max-height:none;flex:none;';
             }
 
-            throw new Error(`Nenhuma tentativa de renderização funcionou. ${errors.join(' | ')}`);
+            // Oculta imagens externas (evita tela branca em file://)
+            clone.querySelectorAll('img').forEach(img => {
+                if (/^https?:\/\//i.test(img.getAttribute('src') || '')) {
+                    img.style.visibility = 'hidden';
+                }
+            });
+
+            document.body.appendChild(clone);
+
+            try {
+                if (document.fonts && document.fonts.ready) await document.fonts.ready;
+                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+                const blob = await htmlToImage.toBlob(clone, {
+                    pixelRatio: 5,
+                    cacheBust: true,
+                    backgroundColor: '#ffffff'
+                });
+
+                if (!blob || blob.size === 0) throw new Error('Blob vazio.');
+                return { blob };
+            } finally {
+                document.body.removeChild(clone);
+            }
         }
 
         async function processAndSend() {
