@@ -525,7 +525,7 @@
                     const nextDayName = daysOfWeek[nextDate.getDay()];
                     const estimativaBadge = estimativaVal ? `<span class="flex items-center gap-1.5 bg-white/15 border border-white/20 rounded-full px-2.5 py-1 text-[10px] font-bold text-white whitespace-nowrap"><i data-lucide="package" class="w-3 h-3 text-emerald-300"></i> Estimativa ${nextDayName} <span class="text-emerald-300 text-sm font-black ml-0.5">${estimativaVal}</span> cx</span>` : '';
                     opEl.innerHTML = `
-                        <div class="flex items-center gap-3 flex-wrap">
+                        <div class="flex items-center gap-3 flex-nowrap overflow-x-auto">
                             <span class="flex items-center gap-1.5 text-white font-bold"><i data-lucide="users" class="w-3.5 h-3.5"></i> ${crewText}</span>
                             <span class="text-white/25">|</span>
                             <span class="flex items-center gap-1 text-white font-bold">
@@ -1001,7 +1001,7 @@
                     const displayTitle = item._varieties.length > 1 ? item._varieties.join(' · ') : (item._varieties[0] || item.variety);
 
                     if (isDescarte) {
-                        const mediaPeso = rawUnits > 0 ? formatSmart((rawWeight / rawUnits) * 1000) : '-';
+                        const mediaPeso = rawUnits > 0 ? formatSmart(rawWeight / rawUnits) : '-';
                         container.innerHTML += `
                         <div class="border-b border-red-100">
                             <div class="flex items-stretch">
@@ -1011,7 +1011,7 @@
                                         <div class="flex-1">
                                             <div class="flex items-center gap-2 flex-wrap">
                                                 <span class="text-lg font-black text-slate-800">Setor ${item.talhao}</span>
-                                                <span class="text-[10px] font-extrabold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full">Ciclo ${item.ciclo || '-'}</span>
+                                                <span class="text-[10px] font-extrabold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full whitespace-nowrap">Ciclo ${item.ciclo || '-'}</span>
                                                 <span class="text-[11px] text-slate-400 font-medium">Estufa ${item.estufa || '-'}</span>
                                                 ${(item.commercialVariety || item.variety) ? `<span class="text-[11px] font-semibold text-slate-500">${item.commercialVariety || item.variety}</span>` : ''}
                                             </div>
