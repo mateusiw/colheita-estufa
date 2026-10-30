@@ -35,6 +35,41 @@
         input, select, textarea { line-height: 1.5; }
         .animate-fade-in-down { animation: fadeInDown 0.3s ease-out forwards; }
         @keyframes fadeInDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Campos do formulário */
+        #harvestForm input:not([type=checkbox]), #turnParametersCard input, #reportDate { border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; padding: 10px 12px; font-size: 14px; color: #1e293b; transition: border-color .15s, box-shadow .15s, background-color .15s; outline: none; }
+        #harvestForm input:not([type=checkbox]):hover:not([readonly]):not([disabled]), #turnParametersCard input:hover, #reportDate:hover { border-color: #cbd5e1; }
+        #harvestForm input:not([type=checkbox]):focus:not([readonly]), #turnParametersCard input:focus, #reportDate:focus { background: #fff; border-color: #10b981; box-shadow: 0 0 0 4px rgba(16,185,129,.12); }
+        #harvestForm input[readonly] { background: #f1f5f9; color: #475569; font-weight: 700; }
+        #harvestForm input::placeholder { color: #94a3b8; }
+
+        /* Seletor personalizado (substitui o <select> nativo) */
+        .cs-wrap { position: relative; }
+        .cs-native { position: absolute; inset: auto 0 0 0; width: 100%; height: 1px; opacity: 0; pointer-events: none; }
+        .cs-btn { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; padding: 10px 12px; font-size: 14px; color: #1e293b; text-align: left; transition: border-color .15s, box-shadow .15s, background-color .15s; cursor: pointer; }
+        .cs-btn:hover:not(:disabled) { border-color: #cbd5e1; }
+        .cs-btn.cs-open, .cs-btn:focus-visible { background: #fff; border-color: #10b981; box-shadow: 0 0 0 4px rgba(16,185,129,.12); outline: none; }
+        .cs-btn:disabled { background: #f1f5f9; color: #94a3b8; cursor: not-allowed; }
+        .cs-btn .cs-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .cs-btn .cs-placeholder { color: #94a3b8; }
+        .cs-btn .cs-chevron { flex-shrink: 0; width: 16px; height: 16px; color: #94a3b8; transition: transform .2s; }
+        .cs-btn.cs-open .cs-chevron { transform: rotate(180deg); color: #10b981; }
+        .cs-menu { position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 60; background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; box-shadow: 0 12px 32px -8px rgba(15,23,42,.18), 0 2px 6px rgba(15,23,42,.06); padding: 6px; min-width: 180px; animation: csIn .14s ease-out; }
+        @keyframes csIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+        .cs-list { max-height: 240px; overflow-y: auto; }
+        .cs-opt { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; padding: 8px 10px; border-radius: 9px; font-size: 14px; color: #334155; text-align: left; cursor: pointer; }
+        .cs-opt:hover, .cs-opt.cs-active { background: #ecfdf5; color: #065f46; }
+        .cs-opt.cs-selected { font-weight: 700; color: #047857; }
+        .cs-opt .cs-check { width: 16px; height: 16px; color: #10b981; flex-shrink: 0; }
+        .cs-empty { padding: 10px; font-size: 12px; color: #94a3b8; text-align: center; }
+        .cs-add { border-top: 1px solid #f1f5f9; margin-top: 4px; padding-top: 4px; }
+        .cs-add-btn { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 10px; border-radius: 9px; font-size: 13px; font-weight: 700; color: #059669; cursor: pointer; }
+        .cs-add-btn:hover { background: #ecfdf5; }
+        .cs-add-form { display: flex; gap: 6px; padding: 4px; }
+        .cs-add-form input { flex: 1; min-width: 0; border-radius: 9px !important; border: 1px solid #10b981 !important; background: #fff !important; padding: 7px 10px !important; font-size: 13px !important; box-shadow: 0 0 0 3px rgba(16,185,129,.12) !important; outline: none; }
+        .cs-add-form button { flex-shrink: 0; border-radius: 9px; background: #059669; color: #fff; font-size: 12px; font-weight: 700; padding: 0 12px; }
+        .cs-add-form button:hover { background: #047857; }
+        .cs-add-form button:disabled { background: #94a3b8; }
     </style>
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen pb-20 select-none">
@@ -144,7 +179,7 @@
                         <div>
                             <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">SETOR</label>
                             <select id="talhao" required onchange="fetchIndicadores(); updatePreview()" class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm bg-white">
-                                <option value="">Selecione...</option>
+                                <option value="">Escolha</option>
                                 <option value="1">1</option>
                                 <option value="2">2</option>
                                 <option value="3">3</option>
@@ -161,7 +196,7 @@
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Cultura</label>
-                            <select id="variety" onchange="updateCommercialInput()" required class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm bg-white">
+                            <select id="variety" onchange="updateCommercialInput(); fetchIndicadores(); updatePreview()" required class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm bg-white">
                                 <option value="">Selecione...</option>
                                 <option value="Pepino">Pepino</option>
                             </select>
@@ -358,6 +393,7 @@
         let isProcessingShare = false;
         let currentRecordType = 'colheita';
         let _lastIndicadores = null;
+        let _lastIndicadoresVar = null;
         let _previewItem = null;
         let _proximosSetores = [];
 
@@ -412,7 +448,12 @@
             }
 
             loadInputs();
+            renderCultureOptions();
+            enhanceSelect(document.getElementById('talhao'), { placeholder: 'Selecione...' });
+            enhanceSelect(document.getElementById('harvestNumber'));
             clearBlockForm();
+            syncVarieties();
+            window.addEventListener('online', flushPendingVarieties);
             sortHarvestData();
             renderList();
             updateDynamicTitle();
@@ -713,26 +754,252 @@
         }
 
         // --- FORMULÁRIO ---
+        // --- SELETOR PERSONALIZADO ---
+        // Troca o visual do <select> nativo por um menu moderno. O <select> continua no formulário
+        // (valor, required e onchange funcionam igual); só fica invisível.
+        const _selectValueDesc = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
+        const _selectIndexDesc = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'selectedIndex');
+        let _openCustomSelect = null;
+
+        function enhanceSelect(sel, opts = {}) {
+            if (!sel) return;
+            if (sel._cs) { sel._cs.opts = opts; sel._cs.render(); return; }
+
+            const wrap = document.createElement('div');
+            wrap.className = 'cs-wrap';
+            sel.parentNode.insertBefore(wrap, sel);
+            wrap.appendChild(sel);
+            sel.classList.add('cs-native');
+            sel.tabIndex = -1;
+
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'cs-btn';
+            wrap.appendChild(btn);
+
+            const cs = { opts, wrap, btn, menu: null };
+            sel._cs = cs;
+
+            cs.render = () => {
+                const opt = sel.options[sel.selectedIndex];
+                const hasValue = opt && opt.value !== '';
+                const text = opt ? opt.text : (cs.opts.placeholder || 'Selecione...');
+                btn.disabled = sel.disabled;
+                btn.innerHTML = `<span class="cs-label ${hasValue ? '' : 'cs-placeholder'}"></span><svg class="cs-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>`;
+                btn.querySelector('.cs-label').textContent = text;
+            };
+
+            cs.close = () => {
+                if (cs.menu) { cs.menu.remove(); cs.menu = null; }
+                btn.classList.remove('cs-open');
+                if (_openCustomSelect === cs) _openCustomSelect = null;
+            };
+
+            cs.choose = (value) => {
+                _selectValueDesc.set.call(sel, value);
+                cs.render();
+                cs.close();
+                sel.dispatchEvent(new Event('change', { bubbles: true }));
+                btn.focus();
+            };
+
+            cs.open = () => {
+                if (_openCustomSelect && _openCustomSelect !== cs) _openCustomSelect.close();
+                _openCustomSelect = cs;
+                btn.classList.add('cs-open');
+                const menu = document.createElement('div');
+                menu.className = 'cs-menu';
+                const list = document.createElement('div');
+                list.className = 'cs-list';
+                const options = Array.from(sel.options).filter(o => o.value !== '');
+                if (!options.length) list.innerHTML = `<div class="cs-empty">Nenhuma opção</div>`;
+                options.forEach(o => {
+                    const item = document.createElement('button');
+                    item.type = 'button';
+                    item.className = 'cs-opt' + (o.value === sel.value ? ' cs-selected' : '');
+                    item.innerHTML = `<span></span>${o.value === sel.value ? '<svg class="cs-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>' : ''}`;
+                    item.firstChild.textContent = o.text;
+                    item.onclick = () => cs.choose(o.value);
+                    list.appendChild(item);
+                });
+                menu.appendChild(list);
+
+                if (cs.opts.onAdd) {
+                    const add = document.createElement('div');
+                    add.className = 'cs-add';
+                    const showButton = () => {
+                        add.innerHTML = `<button type="button" class="cs-add-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> ${cs.opts.addLabel || 'Adicionar nova'}</button>`;
+                        add.firstChild.onclick = (ev) => { ev.stopPropagation(); showForm(); };
+                    };
+                    // Sem <form>: o menu já fica dentro do formulário principal, e o Enter não pode enviá-lo
+                    const showForm = () => {
+                        add.innerHTML = `<div class="cs-add-form"><input type="text" placeholder="${cs.opts.addPlaceholder || 'Nome'}" maxlength="40" autocomplete="off"><button type="button">Salvar</button></div>`;
+                        const input = add.querySelector('input');
+                        const saveBtn = add.querySelector('button');
+                        input.focus();
+                        const salvar = async () => {
+                            const nome = input.value.trim().replace(/\s+/g, ' ');
+                            if (!nome) { input.focus(); return; }
+                            saveBtn.disabled = true;
+                            const valor = await cs.opts.onAdd(nome);
+                            if (valor) cs.choose(valor); else saveBtn.disabled = false;
+                        };
+                        input.onkeydown = (ev) => {
+                            if (ev.key === 'Enter') { ev.preventDefault(); ev.stopPropagation(); salvar(); }
+                            if (ev.key === 'Escape') { ev.stopPropagation(); showButton(); }
+                        };
+                        saveBtn.onclick = (ev) => { ev.stopPropagation(); salvar(); };
+                    };
+                    showButton();
+                    menu.appendChild(add);
+                }
+
+                wrap.appendChild(menu);
+                cs.menu = menu;
+                const selected = menu.querySelector('.cs-selected');
+                if (selected) selected.scrollIntoView({ block: 'nearest' });
+            };
+
+            btn.onclick = () => { if (cs.menu) cs.close(); else cs.open(); };
+            btn.onkeydown = (ev) => {
+                if (ev.key === 'Escape') cs.close();
+                if ((ev.key === 'ArrowDown' || ev.key === 'Enter' || ev.key === ' ') && !cs.menu) { ev.preventDefault(); cs.open(); }
+            };
+
+            // Valor alterado pelo código (ex.: editar um registro) também atualiza o botão
+            Object.defineProperty(sel, 'value', { configurable: true, get() { return _selectValueDesc.get.call(this); }, set(v) { _selectValueDesc.set.call(this, v); cs.render(); } });
+            Object.defineProperty(sel, 'selectedIndex', { configurable: true, get() { return _selectIndexDesc.get.call(this); }, set(v) { _selectIndexDesc.set.call(this, v); cs.render(); } });
+
+            cs.render();
+        }
+
+        document.addEventListener('click', (ev) => {
+            if (_openCustomSelect && !_openCustomSelect.wrap.contains(ev.target)) _openCustomSelect.close();
+        });
+        document.addEventListener('keydown', (ev) => {
+            if (ev.key === 'Escape' && _openCustomSelect) _openCustomSelect.close();
+        });
+
+        // --- VARIEDADES (padrão + cadastradas na planilha + cadastradas neste aparelho) ---
+        const DEFAULT_VARIETIES = { 'Pepino': ['Aikido', 'Tikara', 'Tsuyataro', 'AGX40404', 'Japonês', 'Soldier'] };
+        const VARIETIES_KEY = 'spg_estufa_variedades';
+        const VARIETIES_PENDING_KEY = 'spg_estufa_variedades_pendentes';
+
+        function readJSON(key, fallback) {
+            try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch (e) { return fallback; }
+        }
+
+        function getVarietyMap() {
+            const map = {};
+            const merge = (cultura, lista) => {
+                if (!map[cultura]) map[cultura] = [];
+                lista.forEach(v => { if (v && !map[cultura].some(x => x.toLowerCase() === v.toLowerCase())) map[cultura].push(v); });
+            };
+            Object.entries(DEFAULT_VARIETIES).forEach(([c, l]) => merge(c, l));
+            Object.entries(readJSON(VARIETIES_KEY, {})).forEach(([c, l]) => merge(c, l));
+            return map;
+        }
+
+        function getVarieties(cultura) { return getVarietyMap()[cultura] || []; }
+
+        function saveVarietyLocal(cultura, variedade) {
+            const stored = readJSON(VARIETIES_KEY, {});
+            if (!stored[cultura]) stored[cultura] = [];
+            if (!stored[cultura].some(v => v.toLowerCase() === variedade.toLowerCase())) stored[cultura].push(variedade);
+            localStorage.setItem(VARIETIES_KEY, JSON.stringify(stored));
+        }
+
+        // Envia para a planilha (aba "Variedades"); sem internet, fica pendente e é reenviada depois
+        async function sendVarietyToSheet(cultura, variedade) {
+            if (!SCRIPT_URL) return false;
+            try {
+                await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ action: 'addVariedade', cultura, variedade })
+                });
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        async function flushPendingVarieties() {
+            const pendentes = readJSON(VARIETIES_PENDING_KEY, []);
+            if (!pendentes.length || !navigator.onLine) return;
+            const restantes = [];
+            for (const p of pendentes) {
+                if (!(await sendVarietyToSheet(p.cultura, p.variedade))) restantes.push(p);
+            }
+            localStorage.setItem(VARIETIES_PENDING_KEY, JSON.stringify(restantes));
+        }
+
+        async function addNewVariety(nome) {
+            const cultura = document.getElementById('variety')?.value || '';
+            if (!cultura) return null;
+            const existente = getVarieties(cultura).find(v => v.toLowerCase() === nome.toLowerCase());
+            if (existente) return existente;
+
+            saveVarietyLocal(cultura, nome);
+            const sel = document.getElementById('commercialVariety');
+            if (sel) sel.add(new Option(nome, nome));
+            if (!(await sendVarietyToSheet(cultura, nome))) {
+                const pendentes = readJSON(VARIETIES_PENDING_KEY, []);
+                pendentes.push({ cultura, variedade: nome });
+                localStorage.setItem(VARIETIES_PENDING_KEY, JSON.stringify(pendentes));
+            }
+            return nome;
+        }
+
+        // Busca as variedades cadastradas na planilha e atualiza as listas
+        async function syncVarieties() {
+            if (!SCRIPT_URL) return;
+            await flushPendingVarieties();
+            try {
+                const resp = await fetch(`${SCRIPT_URL}?action=variedades&t=${Date.now()}`);
+                const d = await resp.json();
+                if (!d || !Array.isArray(d.variedades)) return;
+                const stored = readJSON(VARIETIES_KEY, {});
+                d.variedades.forEach(({ cultura, variedade }) => {
+                    if (!stored[cultura]) stored[cultura] = [];
+                    if (!stored[cultura].some(v => v.toLowerCase() === variedade.toLowerCase())) stored[cultura].push(variedade);
+                });
+                localStorage.setItem(VARIETIES_KEY, JSON.stringify(stored));
+                renderCultureOptions();
+                updateCommercialInput();
+            } catch (e) {}
+        }
+
+        function renderCultureOptions() {
+            const sel = document.getElementById('variety');
+            if (!sel) return;
+            const atual = sel.value;
+            const culturas = Object.keys(getVarietyMap());
+            if (atual && !culturas.includes(atual)) culturas.push(atual);
+            sel.innerHTML = '<option value="">Selecione...</option>' + culturas.map(c => `<option value="${c}">${c}</option>`).join('');
+            _selectValueDesc.set.call(sel, atual);
+            enhanceSelect(sel, { placeholder: 'Selecione...' });
+        }
+
         function updateCommercialInput() {
             const variety = document.getElementById('variety').value;
             const wrapper = document.getElementById('commercialVarietyWrapper');
-            let html = `<label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Var. Comercial</label>`;
-            
-            if (variety === 'Pepino') {
-                html += `<select id="commercialVariety" required onchange="fetchIndicadores()" class="w-full p-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
-                    <option value="">Selecione...</option>
-                    <option value="Aikido">Aikido</option>
-                    <option value="Tikara">Tikara</option>
-                    <option value="Tsuyataro">Tsuyataro</option>
-                    <option value="AGX40404">AGX40404</option>
-                    <option value="Japonês">Japonês</option>
-                    <option value="Soldier">Soldier</option>
+            if (!wrapper) return;
+            // Mantém a variedade escolhida só se a cultura não mudou
+            const atual = wrapper.dataset.cultura === variety ? (document.getElementById('commercialVariety')?.value || '') : '';
+            wrapper.dataset.cultura = variety;
+            const lista = variety ? getVarieties(variety) : [];
+            if (atual && variety && !lista.some(v => v === atual)) lista.push(atual);
+
+            wrapper.innerHTML = `<label class="text-xs font-bold text-slate-500 uppercase mb-1 block">Var. Comercial</label>
+                <select id="commercialVariety" ${variety ? 'required' : 'disabled'} onchange="fetchIndicadores()">
+                    <option value="">${variety ? 'Selecione...' : 'Selecione a cultura...'}</option>
+                    ${lista.map(v => `<option value="${v.replace(/"/g, '&quot;')}">${v}</option>`).join('')}
                 </select>`;
-            } else {
-                html += `<input type="text" id="commercialVariety" placeholder="Selecione a cultura..." disabled class="w-full p-2 border border-slate-200 bg-slate-50 rounded-lg text-sm text-slate-400 cursor-not-allowed">`;
-            }
-            
-            if(wrapper) wrapper.innerHTML = html;
+            const sel = document.getElementById('commercialVariety');
+            if (atual && lista.includes(atual)) _selectValueDesc.set.call(sel, atual);
+            enhanceSelect(sel, variety ? { onAdd: addNewVariety, addLabel: 'Adicionar nova variedade', addPlaceholder: 'Nome da variedade' } : {});
         }
 
         function addItem(e) {
@@ -753,10 +1020,9 @@
                 discardReason: document.getElementById('discardReason') ? document.getElementById('discardReason').value : '',
                 indicadores: _lastIndicadores ? {..._lastIndicadores} : (editingIndex >= 0 ? (harvestData[editingIndex]?.indicadores || null) : null)
             };
-            // O formulário busca os indicadores da variedade escolhida; os do setor vêm de outro registro do mesmo setor
-            if (item.commercialVariety && _lastIndicadores) item.indicadoresVar = {..._lastIndicadores};
-            const mesmoSetor = harvestData.find(h => h.indicadoresSetor && h.estufa === item.estufa && h.talhao === item.talhao && h.ciclo === item.ciclo);
-            if (mesmoSetor) item.indicadoresSetor = mesmoSetor.indicadoresSetor;
+            // Indicadores do setor e da variedade buscados pelo formulário
+            item.indicadoresSetor = item.indicadores;
+            item.indicadoresVar = _lastIndicadoresVar ? {..._lastIndicadoresVar} : (editingIndex >= 0 ? (harvestData[editingIndex]?.indicadoresVar || null) : null);
 
             if (editingIndex >= 0) {
                 harvestData[editingIndex] = item;
@@ -775,6 +1041,8 @@
 
         function clearBlockForm() {
             _previewItem = null;
+            _lastIndicadores = null;
+            _lastIndicadoresVar = null;
             ['estufa','talhao','ciclo','dailyUnits','weight','averageWeight','cucumberSize','discardReason'].forEach(id => {
                 const el = document.getElementById(id);
                 if(el) el.value = '';
@@ -809,7 +1077,8 @@
         function editItem(index) {
             const item = harvestData[index];
             editingIndex = index;
-            _lastIndicadores = item.indicadores || null;
+            _lastIndicadores = item.indicadoresSetor || item.indicadores || null;
+            _lastIndicadoresVar = item.indicadoresVar || null;
             
             switchTab(item.recordType || 'colheita');
             
@@ -818,12 +1087,16 @@
             document.getElementById('talhao').value = item.talhao;
             const cicloEl = document.getElementById('ciclo');
             if(cicloEl) cicloEl.value = item.ciclo || '';
-            document.getElementById('variety').value = item.variety;
+            const cultureEl = document.getElementById('variety');
+            if (item.variety && !Array.from(cultureEl.options).some(o => o.value === item.variety)) cultureEl.add(new Option(item.variety, item.variety));
+            cultureEl.value = item.variety;
             updateCommercialInput();
-            
+
             setTimeout(() => {
                 const commEl = document.getElementById('commercialVariety');
-                if(commEl) commEl.value = item.commercialVariety;
+                if (!commEl) return;
+                if (item.commercialVariety && !Array.from(commEl.options).some(o => o.value === item.commercialVariety)) commEl.add(new Option(item.commercialVariety, item.commercialVariety));
+                commEl.value = item.commercialVariety;
             }, 0);
             
             ['dailyUnits','weight','averageWeight','cucumberSize','discardReason'].forEach(k => {
@@ -1111,9 +1384,23 @@
                         const varName = item.commercialVariety || item.variety || '';
                         // Linha "De X plantas, foram colhidas..." usada tanto para a variedade quanto para o setor
                         const indicadorHtml = (ind, unHoje, kgHoje, icon, iconCls, titulo, tituloCls, sub, barCls) => {
-                            if (!ind || !(ind.qtdBaldes > 0)) return '';
+                            if (!ind) return '';
                             const totalUnComHoje = (ind.totalUnidades || 0) + unHoje;
                             const totalKgComHoje = (ind.totalPeso || 0) + kgHoje;
+                            // Planilha sem plantas por variedade: mostra só o que a variedade já produziu
+                            if (ind.plantasPorVariedade === false) {
+                                return `<div class="mb-3">
+                                    <div class="flex items-center gap-1.5 mb-1.5">
+                                        <i data-lucide="${icon}" class="w-3 h-3 ${iconCls}"></i>
+                                        <span class="text-[10px] font-bold ${tituloCls} uppercase tracking-wide">${titulo}</span>
+                                        <span class="text-[10px] text-slate-400 font-medium">· ${sub}</span>
+                                    </div>
+                                    <p class="text-[11px] text-slate-600 leading-relaxed">
+                                        Foram colhidas <strong class="text-slate-800">${totalUnComHoje.toLocaleString('pt-BR')} unidades</strong> e já produziu total de <strong class="text-blue-600">${totalKgComHoje.toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 1})} kg</strong>
+                                    </p>
+                                </div>`;
+                            }
+                            if (!(ind.qtdBaldes > 0)) return '';
                             const kgPl = (totalKgComHoje / ind.qtdBaldes).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
                             const unPl = (totalUnComHoje / ind.qtdBaldes).toLocaleString('pt-BR', {maximumFractionDigits: 1});
                             const pctColhido = Math.round((totalUnComHoje / ind.qtdBaldes) * 100);
@@ -1629,8 +1916,8 @@
                 cucumberSize: document.getElementById('cucumberSize')?.value || '',
                 harvestNumber: document.getElementById('harvestNumber')?.value || '1',
                 indicadores: _lastIndicadores ? {..._lastIndicadores} : existingInd,
-                indicadoresVar: commEl && commEl.value && _lastIndicadores ? {..._lastIndicadores} : (editingIndex >= 0 ? harvestData[editingIndex]?.indicadoresVar : null),
-                indicadoresSetor: (harvestData.find(h => h.indicadoresSetor && h.estufa === (document.getElementById('estufa')?.value || '') && h.talhao === talhao && h.ciclo === (document.getElementById('ciclo')?.value || '')) || {}).indicadoresSetor || null,
+                indicadoresVar: _lastIndicadoresVar ? {..._lastIndicadoresVar} : (editingIndex >= 0 ? harvestData[editingIndex]?.indicadoresVar : null),
+                indicadoresSetor: _lastIndicadores ? {..._lastIndicadores} : existingInd,
                 _rawUnits: parsePTBRNumber(document.getElementById('dailyUnits')?.value || '0'),
                 _rawWeight: parsePTBRNumber(document.getElementById('weight')?.value || '0'),
                 _varieties: []
@@ -1653,6 +1940,7 @@
                 if (!estufa || !setor || !ciclo || currentRecordType !== 'colheita') {
                     if (card) card.classList.add('hidden');
                     _lastIndicadores = null;
+                    _lastIndicadoresVar = null;
                     updatePreview();
                     return;
                 }
@@ -1661,13 +1949,17 @@
                 if (status) status.innerText = 'Buscando...';
 
                 try {
-                    const url = `${SCRIPT_URL}?estufa=${encodeURIComponent(estufa)}&setor=${encodeURIComponent(setor)}&ciclo=${encodeURIComponent(ciclo)}&variedade=${encodeURIComponent(variedade)}&t=${Date.now()}`;
-                    const resp = await fetch(url);
-                    const d = await resp.json();
+                    // Indicadores do setor (todas as variedades) e, se escolhida, da variedade
+                    const urlDe = (v) => `${SCRIPT_URL}?estufa=${encodeURIComponent(estufa)}&setor=${encodeURIComponent(setor)}&ciclo=${encodeURIComponent(ciclo)}&variedade=${encodeURIComponent(v)}&t=${Date.now()}`;
+                    const [d, dVar] = await Promise.all([
+                        fetch(urlDe('')).then(r => r.json()),
+                        variedade ? fetch(urlDe(variedade)).then(r => r.json()).catch(() => null) : Promise.resolve(null)
+                    ]);
 
                     if (d.error) throw new Error(d.error);
 
                     _lastIndicadores = d;
+                    _lastIndicadoresVar = dVar && !dVar.error ? dVar : null;
                     updatePreview();
 
                     document.getElementById('indQtdBaldes').innerText   = d.qtdBaldes > 0 ? d.qtdBaldes.toLocaleString('pt-BR') : 'Não encontrado';
