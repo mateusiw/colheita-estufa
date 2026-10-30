@@ -369,6 +369,31 @@
         </div>
     </div>
 
+    <!-- MODAL TEXTO PARA COPIAR (envio pelo computador) -->
+    <div id="shareTextModal" class="fixed inset-0 bg-slate-900/40 z-50 hidden flex justify-center items-center backdrop-blur-sm px-4">
+        <div class="bg-white rounded-[24px] shadow-2xl p-6 w-full max-w-[420px]">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="flex items-center justify-center h-11 w-11 rounded-full bg-emerald-50 border border-emerald-100 shrink-0">
+                    <i data-lucide="image-down" class="h-5 w-5 text-emerald-600"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-extrabold text-slate-800 leading-tight">Imagem gerada!</h3>
+                    <p class="text-xs text-slate-500 font-medium">A imagem foi baixada. Copie o texto e cole junto no WhatsApp.</p>
+                </div>
+            </div>
+            <textarea id="shareTextContent" readonly rows="3" class="w-full p-3 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-700 font-medium resize-none outline-none select-text focus:border-emerald-500"></textarea>
+            <button id="btnCopyShareText" onclick="copyShareText()" class="w-full mt-3 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm transition-colors flex items-center justify-center gap-2 active:scale-95">
+                <i data-lucide="copy" class="w-4 h-4"></i> <span>Copiar texto</span>
+            </button>
+            <div class="flex gap-3 mt-3">
+                <button onclick="hideShareTextModal()" class="flex-1 py-3 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold rounded-xl text-sm transition-colors">FECHAR</button>
+                <button onclick="openWhatsAppWeb()" class="flex-1 py-3 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-sm transition-colors flex items-center justify-center gap-2">
+                    <i data-lucide="message-circle" class="w-4 h-4"></i> WhatsApp
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL GENÉRICO DE MENSAGEM -->
     <div id="messageModal" class="fixed inset-0 bg-black/50 z-50 hidden flex justify-center items-center backdrop-blur-sm transition-opacity duration-300">
         <div class="bg-white rounded-xl shadow-2xl p-6 w-11/12 max-w-sm transform transition-all scale-100 text-center">
@@ -1808,16 +1833,13 @@
                         // Fallback adicionado para garantir que a imagem não se perca se o navegador bloquear o compartilhamento
                         if (shareErr.name !== 'AbortError') {
                             downloadFile(blobUrl, filename);
-                            setTimeout(() => { 
-                                window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank'); 
-                            }, 500);
+                            showShareTextModal(shareText);
                         }
                     }
                 } else {
+                    // Computador: baixa a imagem e mostra o texto de saudação para copiar
                     downloadFile(blobUrl, filename);
-                    setTimeout(() => { 
-                        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank'); 
-                    }, 500);
+                    showShareTextModal(shareText);
                 }
                 setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
 
@@ -2018,6 +2040,54 @@
 
             modal.classList.remove('hidden');
             lucide.createIcons();
+        }
+
+        // --- TEXTO DE SAUDAÇÃO PARA COPIAR ---
+        function showShareTextModal(text) {
+            document.getElementById('shareTextContent').value = text;
+            resetCopyButton();
+            document.getElementById('shareTextModal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function hideShareTextModal() {
+            document.getElementById('shareTextModal').classList.add('hidden');
+        }
+
+        function resetCopyButton() {
+            const btn = document.getElementById('btnCopyShareText');
+            btn.innerHTML = '<i data-lucide="copy" class="w-4 h-4"></i> <span>Copiar texto</span>';
+            btn.classList.replace('bg-emerald-800', 'bg-emerald-600');
+        }
+
+        async function copyShareText() {
+            const area = document.getElementById('shareTextContent');
+            let ok = false;
+            try {
+                await navigator.clipboard.writeText(area.value);
+                ok = true;
+            } catch (e) {
+                // Navegador sem acesso à área de transferência: copia selecionando o texto
+                area.focus();
+                area.select();
+                try { ok = document.execCommand('copy'); } catch (e2) {}
+            }
+            const btn = document.getElementById('btnCopyShareText');
+            if (ok) {
+                btn.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> <span>Texto copiado!</span>';
+                btn.classList.replace('bg-emerald-600', 'bg-emerald-800');
+                setTimeout(() => { resetCopyButton(); lucide.createIcons(); }, 2000);
+            } else {
+                area.focus();
+                area.select();
+                btn.innerHTML = '<i data-lucide="copy" class="w-4 h-4"></i> <span>Use Ctrl+C para copiar</span>';
+            }
+            lucide.createIcons();
+        }
+
+        function openWhatsAppWeb() {
+            const text = document.getElementById('shareTextContent').value;
+            window.open(`https://web.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
         }
 
         function hideMessageModal() {
