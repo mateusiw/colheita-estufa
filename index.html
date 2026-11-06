@@ -346,6 +346,8 @@
             <p class="text-[14px] font-bold text-[#d97706] mb-8 leading-snug">
                 Caso tenha enviado alguma informação errada, informe ao responsável para que ele possa alterar na planilha.
             </p>
+
+            <p id="confirmDupWarning" class="hidden -mt-4 mb-6 text-[13px] font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 leading-snug"></p>
             
             <div class="flex flex-row gap-3 w-full">
                 <button onclick="hideConfirmModal()" class="flex-1 py-3.5 bg-slate-50 hover:bg-slate-100 text-[#475569] font-bold rounded-xl text-sm transition-colors focus:ring-4 focus:ring-slate-100">
@@ -369,6 +371,18 @@
         </div>
     </div>
 
+    <!-- OVERLAY ENVIANDO (bloqueia novos cliques enquanto gera a imagem) -->
+    <div id="sendOverlay" class="fixed inset-0 z-[998] hidden items-center justify-center backdrop-blur-sm bg-slate-900/40 px-4">
+        <div class="bg-white rounded-2xl shadow-2xl px-8 py-7 flex flex-col items-center gap-3 max-w-[320px] text-center">
+            <svg class="animate-spin w-10 h-10 text-emerald-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
+                <path class="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
+            <span class="text-[15px] font-bold text-slate-800">Gerando e enviando relatório...</span>
+            <span class="text-xs font-medium text-slate-500">Aguarde, não toque em enviar novamente.</span>
+        </div>
+    </div>
+
     <!-- MODAL TEXTO PARA COPIAR (envio pelo computador) -->
     <div id="shareTextModal" class="fixed inset-0 bg-slate-900/40 z-50 hidden flex justify-center items-center backdrop-blur-sm px-4">
         <div class="bg-white rounded-[24px] shadow-2xl p-6 w-full max-w-[420px]">
@@ -377,13 +391,16 @@
                     <i data-lucide="image-down" class="h-5 w-5 text-emerald-600"></i>
                 </div>
                 <div>
-                    <h3 class="text-lg font-extrabold text-slate-800 leading-tight">Imagem gerada!</h3>
-                    <p class="text-xs text-slate-500 font-medium">A imagem foi baixada. Copie o texto e cole junto no WhatsApp.</p>
+                    <h3 id="shareTextTitle" class="text-lg font-extrabold text-slate-800 leading-tight">Imagem gerada!</h3>
+                    <p id="shareTextHint" class="text-xs text-slate-500 font-medium">A imagem foi baixada. Copie o texto e cole junto no WhatsApp.</p>
                 </div>
             </div>
             <textarea id="shareTextContent" readonly rows="3" class="w-full p-3 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-700 font-medium resize-none outline-none select-text focus:border-emerald-500"></textarea>
             <button id="btnCopyShareText" onclick="copyShareText()" class="w-full mt-3 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm transition-colors flex items-center justify-center gap-2 active:scale-95">
                 <i data-lucide="copy" class="w-4 h-4"></i> <span>Copiar texto</span>
+            </button>
+            <button id="btnShareImage" onclick="shareImageFromModal()" class="hidden w-full mt-3 py-3 bg-[#5A7768] hover:bg-[#486355] text-white font-bold rounded-xl text-sm transition-colors items-center justify-center gap-2 active:scale-95">
+                <i data-lucide="share-2" class="w-4 h-4"></i> <span>Compartilhar imagem</span>
             </button>
             <div class="flex gap-3 mt-3">
                 <button onclick="hideShareTextModal()" class="flex-1 py-3 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold rounded-xl text-sm transition-colors">FECHAR</button>
@@ -1286,11 +1303,14 @@
             const groupedData = [];
             const groupMap = {};
             dataComPreview.forEach(item => {
-                // Cada variedade vira um card próprio dentro do setor/ciclo
-                const key = `${item.estufa}__${item.talhao}__${item.ciclo}__${item.commercialVariety || item.variety || ''}`;
+                // Colheita: um card por setor/ciclo, somando todas as variedades. Descarte: um card por variedade
                 const v = item.commercialVariety || item.variety;
+                const key = currentRecordType === 'colheita'
+                    ? `${item.estufa}__${item.talhao}__${item.ciclo}`
+                    : `${item.estufa}__${item.talhao}__${item.ciclo}__${v || ''}`;
                 if (groupMap[key] !== undefined) {
                     const g = groupedData[groupMap[key]];
+                    if (v && !g._varieties.includes(v)) g._varieties.push(v);
                     g._rawUnits  += parsePTBRNumber(item.dailyUnits);
                     g._rawWeight += parsePTBRNumber(item.weight);
                     g.harvestNumber = String((parseInt(g.harvestNumber)||1) + (parseInt(item.harvestNumber)||1));
@@ -1443,16 +1463,14 @@
                                 </div>
                             </div>`;
                         };
-                        // Variedade: só quando o setor tem mais de uma variedade
-                        const variedadeHtml = multiVar
-                            ? indicadorHtml(item.indicadoresVar, item._rawUnits, item._rawWeight, 'sprout', 'text-orange-400', 'Variedade', 'text-orange-500', varName, 'bg-orange-400')
-                            : '';
-                        // Setor: aparece uma vez só, no primeiro card do setor/ciclo, somando a colheita de hoje de todas as variedades
+                        // Só o indicador do setor (todas as variedades juntas), sem separar por variedade
+                        const variedadeHtml = '';
                         let setorHtml = '';
                         if (!seenSetores.has(sk)) {
                             seenSetores.add(sk);
-                            const indSetor = setor.ind || (multiVar ? null : item.indicadores);
-                            setorHtml = indicadorHtml(indSetor, setor.units, setor.weight, 'layout-grid', 'text-slate-400', 'Setor', 'text-slate-600', multiVar ? 'Todas as variedades' : (varName || 'Todas as variedades'), 'bg-emerald-400');
+                            const indSetor = setor.ind || item.indicadores;
+                            const subSetor = item._varieties.length > 1 ? 'Todas as variedades' : (varName || 'Todas as variedades');
+                            setorHtml = indicadorHtml(indSetor, setor.units, setor.weight, 'layout-grid', 'text-slate-400', 'Setor', 'text-slate-600', subSetor, 'bg-emerald-400');
                         }
                         container.innerHTML += `
                         <div class="p-5 border-b ${isPreview ? 'border-dashed border-blue-200 bg-blue-50/30' : 'border-slate-100'}">
@@ -1463,7 +1481,7 @@
                                         <span class="text-[10px] font-extrabold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full whitespace-nowrap">Ciclo ${item.ciclo || '-'}</span>
                                         ${infoTempo}
                                     </div>
-                                    ${varName ? `<span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block mt-0.5">${item.variety && item.commercialVariety ? `${item.variety} · ${item.commercialVariety}` : varName}</span>` : ''}
+                                    ${varName ? `<span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wide block mt-0.5">${item.variety && item.commercialVariety ? `${item.variety} · ${item._varieties.join(', ')}` : varName}</span>` : ''}
                                 </div>
                                 ${isPreview
                                     ? `<span class="text-[10px] font-extrabold text-blue-500 border-2 border-blue-300 border-dashed bg-blue-50 px-3 py-1 rounded-full whitespace-nowrap ml-2 mt-0.5 tracking-wide">PRÉVIA</span>`
@@ -1590,11 +1608,23 @@
 
         // --- FUNÇÕES DO MODAL DE CONFIRMAÇÃO ---
         function showConfirmModal() {
+            if (isProcessingShare) return; // ainda gerando/enviando o anterior
             const currentData = harvestData.filter(item => (item.recordType || 'colheita') === currentRecordType);
             if (currentData.length === 0) {
                 const label = currentRecordType === 'colheita' ? 'Colheita' : 'Descarte';
                 showMessageModal('Atenção', `Adicione registros de ${label} primeiro.`, 'error');
                 return;
+            }
+            // Avisa se este mesmo relatório já foi enviado
+            const enviadoEm = currentReportSentAt();
+            const aviso = document.getElementById('confirmDupWarning');
+            if (enviadoEm) {
+                const hora = new Date(enviadoEm).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                const dia = new Date(enviadoEm).toLocaleDateString('pt-BR');
+                aviso.innerHTML = `Este relatório já foi enviado em <b>${dia} às ${hora}</b>. Enviar de novo só gera a imagem; os dados <b>não</b> serão duplicados na planilha.`;
+                aviso.classList.remove('hidden');
+            } else {
+                aviso.classList.add('hidden');
             }
             document.getElementById('confirmModal').classList.remove('hidden');
             lucide.createIcons();
@@ -1775,9 +1805,15 @@
             
             hideConfirmModal();
 
+            // Copia o texto de saudação já no clique (o navegador só deixa copiar logo após o toque)
+            const shareText = buildShareText();
+            const textoCopiado = copyTextNow(shareText);
+
             const btnSpan = document.querySelector('button[onclick="showConfirmModal()"] span');
             const originalText = btnSpan.innerText;
-            btnSpan.innerText = "Gerando Imagem..."; 
+            btnSpan.innerText = "Gerando Imagem...";
+            const sendOverlay = document.getElementById('sendOverlay');
+            sendOverlay.classList.replace('hidden', 'flex');
 
             try {
                 const element = document.getElementById('report-card');
@@ -1802,7 +1838,13 @@
                     week: weekNum,
                     items: currentData
                 };
-                sendDataToGoogleSheets(payloadToSheets);
+                // Mesmo relatório já enviado: só gera a imagem de novo, sem duplicar na planilha
+                const assinatura = reportSignature(payloadToSheets);
+                if (!getSentReports()[assinatura]) {
+                    sendDataToGoogleSheets(payloadToSheets);
+                    markReportSent(assinatura);
+                }
+                sendOverlay.classList.replace('flex', 'hidden');
 
                 let weekday = reportDate.toLocaleDateString('pt-BR', { weekday: 'long' });
                 weekday = weekday.charAt(0).toUpperCase() + weekday.slice(1);
@@ -1811,17 +1853,17 @@
                 const partnerName = "SPG Estufa";
                 const filename = `${prefix} - ${weekday} ${dateStr} Semana ${weekNum} - ${partnerName}.png`;
 
-                const now = new Date();
-                const hours = now.getHours();
-                const greeting = hours < 12 ? "Bom dia" : (hours < 18 ? "Boa tarde" : "Boa noite");
-                const shareDate = reportDate.toLocaleDateString('pt-BR');
-                const typeLabel = currentRecordType === 'descarte' ? 'Descarte' : 'Produção';
-                const shareText = `${greeting}, Pessoal!\nResumo de ${typeLabel} - ${shareDate} - Semana ${weekNum}`;
-
                 const file = new File([blob], filename, { type: 'image/png' });
                 const blobUrl = URL.createObjectURL(blob);
 
-                if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                const canShareFile = navigator.share && navigator.canShare && navigator.canShare({ files: [file] });
+                const isCelular = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+                if (!isCelular) {
+                    // Computador (Windows, Chromebook...): baixa a imagem e avisa que o texto já foi copiado.
+                    // Se o navegador permitir, mostra também o botão para compartilhar a imagem.
+                    downloadFile(blobUrl, filename);
+                    showShareTextModal(shareText, canShareFile ? { file, filename } : null, await textoCopiado);
+                } else if (canShareFile) {
                     try {
                         await navigator.share({
                             files: [file],
@@ -1833,13 +1875,13 @@
                         // Fallback adicionado para garantir que a imagem não se perca se o navegador bloquear o compartilhamento
                         if (shareErr.name !== 'AbortError') {
                             downloadFile(blobUrl, filename);
-                            showShareTextModal(shareText);
+                            showShareTextModal(shareText, null, await textoCopiado);
                         }
                     }
                 } else {
-                    // Computador: baixa a imagem e mostra o texto de saudação para copiar
+                    // Computador: baixa a imagem e avisa que o texto de saudação já foi copiado
                     downloadFile(blobUrl, filename);
-                    showShareTextModal(shareText);
+                    showShareTextModal(shareText, null, await textoCopiado);
                 }
                 setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
 
@@ -1847,10 +1889,42 @@
                 console.error("Erro ao gerar Imagem:", err);
                 showMessageModal('Erro', 'Falha ao gerar imagem: ' + err.message, 'error');
             } 
-            finally { 
-                if(btnSpan) btnSpan.innerText = originalText; 
+            finally {
+                if(btnSpan) btnSpan.innerText = originalText;
+                sendOverlay.classList.replace('flex', 'hidden');
                 isProcessingShare = false;
             }
+        }
+
+        // --- CONTROLE DE ENVIO DUPLICADO ---
+        const SENT_REPORTS_KEY = 'spg_estufa_enviados';
+
+        // Identifica o relatório pela data, tipo e dados digitados (ignora indicadores, que vêm da planilha)
+        function reportSignature(payload) {
+            const items = payload.items.map(({ indicadores, indicadoresVar, indicadoresSetor, ...resto }) => resto);
+            const texto = JSON.stringify([payload.date, currentRecordType, items]);
+            let h = 5381;
+            for (let i = 0; i < texto.length; i++) h = ((h << 5) + h + texto.charCodeAt(i)) | 0;
+            return String(h >>> 0);
+        }
+
+        function getSentReports() {
+            const enviados = readJSON(SENT_REPORTS_KEY, {});
+            // Guarda só os últimos 7 dias
+            const limite = Date.now() - 7 * 24 * 60 * 60 * 1000;
+            Object.keys(enviados).forEach(k => { if (enviados[k] < limite) delete enviados[k]; });
+            return enviados;
+        }
+
+        function markReportSent(assinatura) {
+            const enviados = getSentReports();
+            enviados[assinatura] = Date.now();
+            localStorage.setItem(SENT_REPORTS_KEY, JSON.stringify(enviados));
+        }
+
+        function currentReportSentAt() {
+            const items = harvestData.filter(item => (item.recordType || 'colheita') === currentRecordType);
+            return getSentReports()[reportSignature({ date: getSelectedDate().toLocaleDateString('pt-BR'), items })] || null;
         }
 
         async function downloadPDF() {
@@ -2043,8 +2117,44 @@
         }
 
         // --- TEXTO DE SAUDAÇÃO PARA COPIAR ---
-        function showShareTextModal(text) {
+        let _shareModalFile = null;
+
+        function buildShareText() {
+            const reportDate = getSelectedDate();
+            const hours = new Date().getHours();
+            const greeting = hours < 12 ? "Bom dia" : (hours < 18 ? "Boa tarde" : "Boa noite");
+            const typeLabel = currentRecordType === 'descarte' ? 'Descarte' : 'Produção';
+            return `${greeting}, Pessoal!\nResumo de ${typeLabel} - ${reportDate.toLocaleDateString('pt-BR')} - Semana ${getWeekNumber(reportDate)}`;
+        }
+
+        // Copia na hora (precisa ser chamada direto no clique). Retorna uma Promise<boolean>.
+        function copyTextNow(text) {
+            let ok = false;
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.setAttribute('readonly', '');
+            ta.style.cssText = 'position:fixed;top:0;left:-9999px;opacity:0;user-select:text;-webkit-user-select:text';
+            document.body.appendChild(ta);
+            ta.select();
+            try { ok = document.execCommand('copy'); } catch (e) {}
+            ta.remove();
+            if (ok) return Promise.resolve(true);
+            if (!navigator.clipboard) return Promise.resolve(false);
+            return navigator.clipboard.writeText(text).then(() => true, () => false);
+        }
+
+        // share = { file, filename }: mostra o botão "Compartilhar imagem" em vez de baixar
+        // copiado = o texto já foi copiado automaticamente
+        function showShareTextModal(text, share = null, copiado = false) {
+            _shareModalFile = share;
             document.getElementById('shareTextContent').value = text;
+            document.getElementById('shareTextTitle').innerText = copiado ? 'Texto copiado!' : 'Imagem gerada!';
+            document.getElementById('shareTextHint').innerText = copiado
+                ? 'A imagem foi baixada e o texto de saudação já foi copiado. É só colar no WhatsApp (Ctrl+V).'
+                : 'A imagem foi baixada. Copie o texto e cole junto no WhatsApp.';
+            const shareBtn = document.getElementById('btnShareImage');
+            shareBtn.classList.toggle('hidden', !share);
+            shareBtn.classList.toggle('flex', !!share);
             resetCopyButton();
             document.getElementById('shareTextModal').classList.remove('hidden');
             lucide.createIcons();
@@ -2083,6 +2193,21 @@
                 btn.innerHTML = '<i data-lucide="copy" class="w-4 h-4"></i> <span>Use Ctrl+C para copiar</span>';
             }
             lucide.createIcons();
+        }
+
+        async function shareImageFromModal() {
+            if (!_shareModalFile) return;
+            const { file, filename } = _shareModalFile;
+            try {
+                await navigator.share({ files: [file], title: filename });
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    // Não conseguiu compartilhar: baixa a imagem
+                    const url = URL.createObjectURL(file);
+                    downloadFile(url, filename);
+                    setTimeout(() => URL.revokeObjectURL(url), 10000);
+                }
+            }
         }
 
         function openWhatsAppWeb() {
